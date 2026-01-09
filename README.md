@@ -1,19 +1,27 @@
 > [!NOTE]
 > Coming Soon
 
-# Requirements
+This is a CS2 cs_script to help create vehicles
 
-These entities must be placed for each vehicle in the map
+# Map Setup
+
+These entities must be placed in the map
 
 > [!IMPORTANT]
 > You must either include vehicle name prefix (i.e., `{vehicle name}_`) in the name of every entity or create a prefab containing vehicle entities and instead set the prefab name to vehicle name in Hammer
 
 |Entity|Description|Required Properties|
 |------|-----------|----------|
+|`point_script`|To load the script|cs_script: the script|
+
+## Vehicle
+
+|Entity|Description|Required Properties|
+|------|-----------|----------|
 |Any VPhysics entity|Vehicle body|Name: `body`|
 |`phys_thruster`|Thruster to move the vehicle, forward, backward, right and left... you can skip any or all thrusters|Name: `thruster_{forward/backward/right/left}`|
 
-## For each seat
+## Vehicle seats
 
 |Entity|Description|Required Properties|
 |------|-----------|----------|
