@@ -5,7 +5,7 @@ A demo map with a vehicle is in maps folder
 # Features
 
 - Player follow the vehicle almost smoothly
-- You can create vehicles without and I/O
+- You can create vehicles without any entity I/O
 - You can have as many seats and place them where you want
 - You can choose to ignore thruster of one or more directions
 
