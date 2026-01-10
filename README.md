@@ -43,3 +43,4 @@ These entities must be placed in the map
 - [ ] Vehicle collision doesn't damage player
 - [ ] Player orientation doesn't follow vehicle pitch and roll, so player can appear out of vehicle if it tilts or rotates up or down
 - [ ] Weapon accuracy is worst if seat is not on the ground
+- [ ] All vehicles can rotate with same torque at any velocity
