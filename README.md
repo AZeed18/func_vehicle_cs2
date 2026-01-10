@@ -1,13 +1,10 @@
-> [!NOTE]
-> Coming Soon
+This is a CS2 cs_script to help create vehicles with minimal map setup
 
-This is a CS2 cs_script to help create vehicles
+A demo map with a vehicle is in maps folder
 
 # Map Setup
 
 These entities must be placed in the map
-
-
 
 > [!IMPORTANT]
 > - You must either include vehicle name prefix (i.e., `{vehicle name}_`) in the name of every entity or create a prefab containing vehicle entities and instead set the prefab name to vehicle name in Hammer
