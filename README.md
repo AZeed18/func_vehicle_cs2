@@ -2,6 +2,13 @@ This is a CS2 cs_script to help create vehicles with minimal map setup
 
 A demo map with a vehicle is in maps folder
 
+# Features
+
+- Player follow the vehicle almost smoothly
+- You can create vehicles without and I/O
+- You can have as many seats and place them where you want
+- You can choose to ignore thruster of one or more directions
+
 # Map Setup
 
 These entities must be placed in the map
