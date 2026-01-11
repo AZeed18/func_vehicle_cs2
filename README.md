@@ -1,4 +1,4 @@
-[![demo video](demo_thumb.jpg)](demo.mp4)
+https://github.com/user-attachments/assets/8119030e-958b-4ef8-9056-ed79003c067c
 
 This is a CS2 cs_script to help create vehicles with minimal map setup
 
