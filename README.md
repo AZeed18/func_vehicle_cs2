@@ -1,5 +1,4 @@
-![[demo video](demo.mp4)](demo_thumb.jpg)
-
+[![demo video](demo_thumb.jpg)](demo.mp4)
 
 This is a CS2 cs_script to help create vehicles with minimal map setup
 
