@@ -20,11 +20,11 @@ function EnterVehicle(ply, vec, seatNum){
 		});
 
 	// rename player to match name in his seat's logic_collision_pair
+	const vecName = vec.GetEntityName().replace('_body', '');
+	const seatName = vecName + '_seat' + seatNum;
 	ply.SetEntityName(seatName + '_player');
 
 	// queue player to disable its collisions with the vehicle on the next OnThink call
-	const vecName = vec.GetEntityName();
-	const seatName = vecName + '_seat' + seatNum;
 	newOccupants.push([ply, seatName]);
 }
 
@@ -49,7 +49,6 @@ function ExitVehicle(ply, vec, seatNum){
 	i.EntFireAtName({name: seatName + '_collision', input: "EnableCollisions"});
 
 	// queue player to reset its name on the next OnThink call
-	const ply = vecData.occupants[seatNum];
 	newAbandoners.push(ply);
 
 	// teleport out of seat
@@ -81,8 +80,9 @@ function IsInVehicle(ply){
 function UseVehicle(inputData){
 	const [seatButton, ply] = [inputData.caller, inputData.activator];
 
+	const vecName = seatButton.GetEntityName().replace(/_seat\d+_button/, '');
 	const vec = i.FindEntityByName(vecName + '_body');
-	const seatNum = Number(seatButton.replace(/.*_seat\d+_button/, ''));
+	const seatNum = seatButton.GetEntityName().replace(/.*_seat(\d+)_button/, '$1');
 
 	const occupant = GetOccupant(vec, seatNum);
 	// not occupied and player is not in a vehicle
@@ -135,6 +135,12 @@ i.OnPlayerDisconnect((_) => {
 				return ExitVehicle(null, vec, seatNum);
 });
 
+i.OnRoundEnd((_) => {
+	for (const [vec, vecData] of occupiedVecs)
+		for (const seatNum in vecData.occupants)
+			vecData.occupants[seatNum].SetEntityName('');
+});
+
 // --------------------
 
 i.SetThink(() => {
@@ -180,7 +186,7 @@ i.SetThink(() => {
 					const velYaw = Math.atan2(diry, dirx) / Math.PI * 180;
 
 					// determine movement direction relative to driver's direction to activate the right thruster(s) (https://developer.valvesoftware.com/wiki/QAngle)
-					const dyaw = -(velYaw - drvAngles.yaw) // negative to make right at 90 instead of -90
+					let dyaw = -(velYaw - drvAngles.yaw) // negative to make right at 90 instead of -90
 					if (dyaw < 0) dyaw += 360;
 					// forward
 					if ((dyaw > 0 && dyaw < 0 + DEVIATION) || (dyaw > 360 - DEVIATION && dyaw < 360))
