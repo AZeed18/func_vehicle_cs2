@@ -1,3 +1,6 @@
+![[demo video](demo.mp4)](demo_thumb.jpg)
+
+
 This is a CS2 cs_script to help create vehicles with minimal map setup
 
 A demo map with a vehicle is in maps folder
