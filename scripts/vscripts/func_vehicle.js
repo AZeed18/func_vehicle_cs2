@@ -2,7 +2,7 @@ import { Instance as i } from "cs_script/point_script";
 
 const ZEROVECTOR = {x:0, y:0, z:0};
 const DEVIATION = 20; // how much degrees allowed to deviate from known directions as error caused by player rotating while moving, must be < 45
-const FULLTORQUEVELOCITY = 2000; // velocity at which vehicle reaches maximum torque
+const FULLTORQUEVELOCITY = 300; // velocity at which vehicle reaches maximum torque
 const occupiedVecs = new Map(); // map of occupied vehicle entities to dictionary of vehicle data
 const newOccupants = []; // temporary list of player entity and seat name for every new occupant
 const newAbandoners = [];  // temporary list of player entity for every new abandoner
@@ -202,6 +202,12 @@ i.SetThink(() => {
 					const vecVel = magnitude(vecVelVec);
 					const scale = vecVel/FULLTORQUEVELOCITY;
 
+					// find vehicle movement yaw relative to its yaw
+					const vecYaw = vec.GetAbsAngles().yaw;
+					const vecVelYaw = findYaw(vecVelVec);
+					const vecRelYaw = vecVelYaw - vecYaw;
+					const forward = Math.cos(vecRelYaw / 180 * Math.PI) > 0
+
 					// determine movement direction relative to driver's direction to activate the right thruster(s) (https://developer.valvesoftware.com/wiki/QAngle)
 					// forward
 					if ((drvRelYaw > 0 && drvRelYaw < 0 + DEVIATION) || (drvRelYaw > 360 - DEVIATION && drvRelYaw < 360))
@@ -211,28 +217,28 @@ i.SetThink(() => {
 						SetThrusterState(vecName, 'forward', true, -1);
 					// left
 					else if (drvRelYaw > 90 - DEVIATION && drvRelYaw < 90 + DEVIATION)
-						SetThrusterState(vecName, 'right', true, -scale);
+						SetThrusterState(vecName, 'right', true, forward ? -scale : scale);
 					// right
 					else if (drvRelYaw > 270 - DEVIATION && drvRelYaw < 270 + DEVIATION)
-						SetThrusterState(vecName, 'right', true, scale);
+						SetThrusterState(vecName, 'right', true, forward ? scale : -scale);
 					// forward left
 					else if (drvRelYaw > 45 - DEVIATION && drvRelYaw < 45 + DEVIATION){
-						SetThrusterState(vecName, 'right', true, -scale);
+						SetThrusterState(vecName, 'right', true, forward ? -scale : scale);
 						SetThrusterState(vecName, 'forward', true, 1-scale);
 					}
 					// forward right
 					else if (drvRelYaw > 315 - DEVIATION && drvRelYaw < 315 + DEVIATION){
-						SetThrusterState(vecName, 'right', true, scale);
+						SetThrusterState(vecName, 'right', true, forward ? scale : -scale);
 						SetThrusterState(vecName, 'forward', true, 1-scale);
 					}
 					// backward left
 					else if (drvRelYaw > 135 - DEVIATION && drvRelYaw < 135 + DEVIATION){
-						SetThrusterState(vecName, 'right', true, -scale);
+						SetThrusterState(vecName, 'right', true, forward ? -scale : scale);
 						SetThrusterState(vecName, 'forward', true, -(1-scale));
 					}
 					// backward right
 					else if	(drvRelYaw > 225 - DEVIATION && drvRelYaw < 225 + DEVIATION){
-						SetThrusterState(vecName, 'right', true, scale);
+						SetThrusterState(vecName, 'right', true, forward ? scale : -scale);
 						SetThrusterState(vecName, 'forward', true, -(1-scale));
 					}
 				}
