@@ -1,7 +1,8 @@
 import { Instance as i } from "cs_script/point_script";
 
 const ZEROVECTOR = {x:0, y:0, z:0};
-const DEVIATION = 30; // how much degrees allowed to deviate from known directions as error caused by player rotating while moving, must be < 45
+const DEVIATION = 20; // how much degrees allowed to deviate from known directions as error caused by player rotating while moving, must be < 45
+const FULLTORQUEVELOCITY = 2000; // velocity at which vehicle reaches maximum torque
 const occupiedVecs = new Map(); // map of occupied vehicle entities to dictionary of vehicle data
 const newOccupants = []; // temporary list of player entity and seat name for every new occupant
 const newAbandoners = [];  // temporary list of player entity for every new abandoner
@@ -41,9 +42,7 @@ function ExitVehicle(ply, vec, seatNum){
 	// stop all thrusters
 	const vecName = vec.GetEntityName().replace('_body', '');
 	SetThrusterState(vecName, 'forward', false);
-	SetThrusterState(vecName, 'backward', false);
 	SetThrusterState(vecName, 'right', false);
-	SetThrusterState(vecName, 'left', false);
 
 	const seatName = vecName + '_seat' + seatNum;
 	i.EntFireAtName({name: seatName + '_collision', input: "EnableCollisions"});
@@ -103,9 +102,11 @@ function UpdateOccupantsHealth(inputData){
 	vecData.hp = newHp;
 }
 
-function SetThrusterState(vecName, direction, on){
-	const thruster = i.FindEntityByName(vecName + '_thruster_' + direction);
+function SetThrusterState(vecName, direction, on, forceScale=1){
+	const thruster = i.FindEntityByName(vecName + '_' + direction);
+
 	if (thruster != undefined){
+		i.EntFireAtTarget({target: thruster, input: "Scale", value: forceScale});
 		if (on)
 			i.EntFireAtTarget({target: thruster, input: "Activate"});
 		else
@@ -116,6 +117,11 @@ function SetThrusterState(vecName, direction, on){
 // --------------------
 
 i.OnRoundStart(() => {
+	// reset player names from last round
+	for (const [_, vecData] of occupiedVecs)
+		for (const seatNum in vecData.occupants)
+			vecData.occupants[seatNum].SetEntityName('');
+
 	occupiedVecs.clear();
 	for (const seatButton of i.FindEntitiesByName("*_seat*_button"))
 		i.ConnectOutput(seatButton, "OnPressed", UseVehicle);
@@ -135,19 +141,33 @@ i.OnPlayerDisconnect((_) => {
 				return ExitVehicle(null, vec, seatNum);
 });
 
-i.OnRoundEnd((_) => {
-	for (const [vec, vecData] of occupiedVecs)
-		for (const seatNum in vecData.occupants)
-			vecData.occupants[seatNum].SetEntityName('');
-});
-
 // --------------------
+
+function magnitude(v){
+	return Math.sqrt(v.x**2 + v.y**2 + v.z**2);
+}
+
+// find yaw of a vector
+function findYaw(v){
+	v.z = 0;
+
+	const m = magnitude(v);
+
+	// calculate normalized velocity vector (i.e., direction vector)
+	const d = {
+		x: v.x/=m,
+		y: v.y/=m
+	}
+
+	// calculate the yaw of direction vector
+	return Math.atan2(d.y, d.x) / Math.PI * 180;
+}
 
 i.SetThink(() => {
 	while (newOccupants.length){
 		const [ply, seatName] = newOccupants.pop();
 		i.EntFireAtName({name: seatName + '_collision' , input: "DisableCollisions"});
-		
+
 		const seatIn = i.FindEntityByName(seatName + '_in');
 		ply.Teleport(seatIn.GetAbsOrigin(), seatIn.GetAbsAngles(), ZEROVECTOR);
 	}
@@ -164,61 +184,56 @@ i.SetThink(() => {
 			if (seatNum == 0){
 				// stop all thrusters
 				SetThrusterState(vecName, 'forward', false);
-				SetThrusterState(vecName, 'backward', false);
 				SetThrusterState(vecName, 'right', false);
-				SetThrusterState(vecName, 'left', false);
 
-				// get driver veolcity vector
-				const velVec = ply.GetAbsVelocity();
+				// get driver velocity
+				const drvVelVec = ply.GetAbsVelocity();
 
-				// calculate velocity
-				const vel = Math.sqrt(velVec.x**2 + velVec.y**2);
-				
 				// if driver moved, move the vehicle
-				if (vel > 0){
-					const drvAngles = ply.GetAbsAngles();
+				if (drvVelVec.x != 0 || drvVelVec.y != 0){
+					// find driver movement yaw relative to his yaw
+					const drvYaw = ply.GetAbsAngles().yaw;
+					const drvVelYaw = findYaw(drvVelVec);
+					const drvRelYaw = (drvVelYaw - drvYaw + 360) % 360;
 
-					// calculate normalized velocity vector (i.e., direction vector)
-					const dirx = velVec.x/vel;
-					const diry = velVec.y/vel;
-
-					// calculate the yaw of direction vector
-					const velYaw = Math.atan2(diry, dirx) / Math.PI * 180;
+					// calculate torque scale
+					const vecVelVec = vec.GetAbsVelocity();
+					vecVelVec.z = 0;
+					const vecVel = magnitude(vecVelVec);
+					const scale = vecVel/FULLTORQUEVELOCITY;
 
 					// determine movement direction relative to driver's direction to activate the right thruster(s) (https://developer.valvesoftware.com/wiki/QAngle)
-					let dyaw = -(velYaw - drvAngles.yaw) // negative to make right at 90 instead of -90
-					if (dyaw < 0) dyaw += 360;
 					// forward
-					if ((dyaw > 0 && dyaw < 0 + DEVIATION) || (dyaw > 360 - DEVIATION && dyaw < 360))
+					if ((drvRelYaw > 0 && drvRelYaw < 0 + DEVIATION) || (drvRelYaw > 360 - DEVIATION && drvRelYaw < 360))
 						SetThrusterState(vecName, 'forward', true);
 					// backward
-					else if (dyaw > 180 - DEVIATION && dyaw < 180 + DEVIATION)
-						SetThrusterState(vecName, 'backward', true);
-					// right
-					else if (dyaw > 90 - DEVIATION && dyaw < 90 + DEVIATION)
-						SetThrusterState(vecName, 'right', true);
+					else if (drvRelYaw > 180 - DEVIATION && drvRelYaw < 180 + DEVIATION)
+						SetThrusterState(vecName, 'forward', true, -1);
 					// left
-					else if (dyaw > 270 - DEVIATION && dyaw < 270 + DEVIATION)
-						SetThrusterState(vecName, 'left', true);
-					// forward right
-					else if (dyaw > 45 - DEVIATION && dyaw < 45 + DEVIATION){
-						SetThrusterState(vecName, 'forward', true);
-						SetThrusterState(vecName, 'right', true);
-					}
+					else if (drvRelYaw > 90 - DEVIATION && drvRelYaw < 90 + DEVIATION)
+						SetThrusterState(vecName, 'right', true, -scale);
+					// right
+					else if (drvRelYaw > 270 - DEVIATION && drvRelYaw < 270 + DEVIATION)
+						SetThrusterState(vecName, 'right', true, scale);
 					// forward left
-					else if (dyaw > 315 - DEVIATION && dyaw < 315 + DEVIATION){
-						SetThrusterState(vecName, 'forward', true);
-						SetThrusterState(vecName, 'left', true);
+					else if (drvRelYaw > 45 - DEVIATION && drvRelYaw < 45 + DEVIATION){
+						SetThrusterState(vecName, 'right', true, -scale);
+						SetThrusterState(vecName, 'forward', true, 1-scale);
 					}
-					// backward right
-					else if (dyaw > 135 - DEVIATION && dyaw < 135 + DEVIATION){
-						SetThrusterState(vecName, 'backward', true);
-						SetThrusterState(vecName, 'right', true);
+					// forward right
+					else if (drvRelYaw > 315 - DEVIATION && drvRelYaw < 315 + DEVIATION){
+						SetThrusterState(vecName, 'right', true, scale);
+						SetThrusterState(vecName, 'forward', true, 1-scale);
 					}
 					// backward left
-					else if	(dyaw > 225 - DEVIATION && dyaw < 225 + DEVIATION){
-						SetThrusterState(vecName, 'backward', true);
-						SetThrusterState(vecName, 'left', true);
+					else if (drvRelYaw > 135 - DEVIATION && drvRelYaw < 135 + DEVIATION){
+						SetThrusterState(vecName, 'right', true, -scale);
+						SetThrusterState(vecName, 'forward', true, -(1-scale));
+					}
+					// backward right
+					else if	(drvRelYaw > 225 - DEVIATION && drvRelYaw < 225 + DEVIATION){
+						SetThrusterState(vecName, 'right', true, scale);
+						SetThrusterState(vecName, 'forward', true, -(1-scale));
 					}
 				}
 			}

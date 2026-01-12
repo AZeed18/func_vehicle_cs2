@@ -28,7 +28,7 @@ These entities must be placed in the map
 |Entity|Description|Required Properties|
 |------|-----------|----------|
 |Any VPhysics entity|Vehicle body|Name: `body`|
-|`phys_thruster`|Thruster to move the vehicle, forward, backward, right and left... you can skip any or all thrusters|Name: `thruster_{forward/backward/right/left}`|
+|`phys_thruster` (optional)|Thrusters to move the vehicle, one for forward/backward and one for right/left|Name: `forward\|right`|
 
 ## Vehicle seats
 
@@ -44,5 +44,6 @@ These entities must be placed in the map
 - Requires placing `logic_collision_pair`
 - [ ] Vehicle collision doesn't damage player
 - [ ] Player orientation doesn't follow vehicle pitch and roll, so player can appear out of vehicle if it tilts or rotates up or down
-- [ ] Weapon accuracy is worst if seat is not on the ground
-- [ ] All vehicles can rotate with same torque at any velocity
+- [ ] Weapon spread if seat is not on the ground
+- [x] All vehicles can rotate with same torque at any velocity
+- [ ] Can't drive on a seat that goes through the ground
