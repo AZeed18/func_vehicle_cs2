@@ -16,7 +16,7 @@ A demo map with a vehicle is in maps folder
 These entities must be placed in the map
 
 > [!IMPORTANT]
-> - You must either include vehicle name prefix (i.e., `{vehicle name}_`) in the name of every entity or create a prefab containing vehicle entities and instead set the prefab name to vehicle name in Hammer
+> - You must either include vehicle name prefix (i.e., `{vehicle name}_`) in the name of every vehicle/seat-specific entity or create a prefab containing vehicle entities and instead set the prefab name to vehicle name in Hammer
 > - Set parents of entities as needed
 
 |Entity|Description|Required Properties|
@@ -37,13 +37,14 @@ These entities must be placed in the map
 |`func_button`|Used to enter vehicle into that seat, each seat should have a number where seat 0 is the driver's seat|Name: `seat{seat number}_button`|
 |Any|Entity whose origin is at the bottom of where the player should be when occupying that seat|Name: `seat{seat number}_in`|
 |Any|Entity whose origin is at the bottom of where the player should be when unoccupying that seat|Name: `seat{seat number}_out`|
-|`logic_collision_pair`|Used to disable collision between vehicle body and occupant|Name: `seat{seat number}_collision`<br>Attachment 1: `body`<br>Attachment 2: `seat{seat number}_player`<br>Include Hierarchy: ✅||
+|`logic_collision_pair`|Used to disable collision between occupant and vehicle|Name: `seat{seat number}_collision`<br>Attachment 1: `seat{seat number}_player`<br>Attachment 2: `body`<br>Include Hierarchy: ✅||
+|`logic_collision_pair` (optional)|Used to disable collision between driver seat occupant and the world, needed only for driver seats where the driver can get inside the ground|Name: `seat0_collision`<br>Attachment 1: `seat0_player`<br>Attachment 2: leave empty<br>Include Hierarchy: ✅||
 
 # Limitations
 
 - Requires placing `logic_collision_pair`
 - [ ] Vehicle collision doesn't damage player
 - [ ] Player orientation doesn't follow vehicle pitch and roll, so player can appear out of vehicle if it tilts or rotates up or down
-- [ ] Weapon spread if seat is not on the ground
+- [ ] Weapon spread
 - [x] All vehicles can rotate with same torque at any velocity
-- [ ] Can't drive on a seat that goes through the ground
+- [x] Can't drive on a seat that goes through the ground
