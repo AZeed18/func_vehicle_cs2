@@ -17,34 +17,44 @@ These entities must be placed in the map
 
 > [!IMPORTANT]
 > - You must either include vehicle name prefix (i.e., `{vehicle name}_`) in the name of every vehicle/seat-specific entity or create a prefab containing vehicle entities and instead set the prefab name to vehicle name in Hammer
-> - Set parents of entities as needed
+> - Remember to set parents of entities as needed
 
-|Entity|Description|Required Properties|
-|------|-----------|----------|
-|`point_script`|To load the script|cs_script: the script|
+- `point_script`: To load the script
+    > cs_script: the script
+- `logic_collision_pair`: Used to disable collision between vehicle and occupants, you may place one for each vehicle or use wildcards to match multiple/all vehicles
+    > Name: `func_vehicle_collision`\
+    > Attachment 1: `func_vehicle_player`\
+    > Attachment 2: vehicle body/bodies name/pattern\
+    > Support multiple entities with same name: ✅\
+    > Include Hierarchy: ✅
+- `logic_collision_pair` (optional): Used to disable collision between occupant and the world, needed to enable driving inside the ground.. Optional for vehicles where the driver seat can't get inside the ground
+    > Name: `func_vehicle_collision`\
+    > Attachment 1: `func_vehicle_player`\
+    > Attachment 2: *empty*\
+    > Support multiple entities with same name: ✅\
+    > Include Hierarchy: ✅
 
 ## Vehicle
 
-|Entity|Description|Required Properties|
-|------|-----------|----------|
-|Any VPhysics entity|Vehicle body|Name: `body`|
-|`phys_thruster` (optional)|Thrusters to move the vehicle, one for forward/backward and one for right/left|Name: `forward\|right`|
+- Any VPhysics entity: Vehicle body
+    > Name: `body`
+- `phys_thruster` (optional): Thrusters to move the vehicle, one for forward/backward and one for right/left
+    > Name: `forward\right`
 
-## Vehicle seats
+## Seats
 
-|Entity|Description|Required Properties|
-|------|-----------|----------|
-|`func_button`|Used to enter vehicle into that seat, each seat should have a number where seat 0 is the driver's seat|Name: `seat{seat number}_button`|
-|Any|Entity whose origin is at the bottom of where the player should be when occupying that seat|Name: `seat{seat number}_in`|
-|Any|Entity whose origin is at the bottom of where the player should be when unoccupying that seat|Name: `seat{seat number}_out`|
-|`logic_collision_pair`|Used to disable collision between occupant and vehicle|Name: `seat{seat number}_collision`<br>Attachment 1: `seat{seat number}_player`<br>Attachment 2: `body`<br>Include Hierarchy: ✅||
-|`logic_collision_pair` (optional)|Used to disable collision between driver seat occupant and the world, needed only for driver seats where the driver can get inside the ground|Name: `seat0_collision`<br>Attachment 1: `seat0_player`<br>Attachment 2: leave empty<br>Include Hierarchy: ✅||
+- `func_button`: Used to enter vehicle into that seat, each seat should have a number where seat 0 is the driver's seat
+    > Name: `seat{seat number}_button`
+- Any: Entity whose origin is at the bottom of where the player should be when occupying that seat
+    > Name: `seat{seat number}_in`
+- Any: Entity whose origin is at the bottom of where the player should be when unoccupying that seat
+    > Name: `seat{seat number}_out`
 
 # Limitations
 
 - Requires placing `logic_collision_pair`
-- [ ] Vehicle collision doesn't damage player
-- [ ] Player orientation doesn't follow vehicle pitch and roll, so player can appear out of vehicle if it tilts or rotates up or down
-- [ ] Weapon spread
-- [x] All vehicles can rotate with same torque at any velocity
-- [x] Can't drive on a seat that goes through the ground
+- Vehicle collision doesn't damage player
+- Player orientation doesn't follow vehicle pitch and roll, so player can appear out of vehicle if it tilts or rotates up or down
+- Weapon spread
+- ~~All vehicles can rotate with same torque at any velocity~~
+- ~~Can't drive on a seat that goes through the ground~~
