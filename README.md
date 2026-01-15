@@ -50,11 +50,11 @@ These entities must be placed in the map
 - Any: Entity whose origin is at the bottom of where the player should be when unoccupying that seat
     > Name: `seat{seat number}_out`
 
-# Limitations
+# Current Limitations
 
-- Requires placing `logic_collision_pair`
-- Vehicle collision doesn't damage player
-- Player orientation doesn't follow vehicle pitch and roll, so player can appear out of vehicle if it tilts or rotates up or down
+- Vehicle will immediately stop on touching any non-occupant player
+- Vehicle collision doesn't damage occupants
+- Driver orientation doesn't follow vehicle pitch and roll, so he can appear out of vehicle if it tilts or rotates up or down
 - Weapon spread
 - ~~All vehicles can rotate with same torque at any velocity~~
 - ~~Can't drive on a seat that goes through the ground~~

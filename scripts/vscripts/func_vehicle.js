@@ -22,14 +22,14 @@ const occupiedVecs = new Map();
 /**
  * Queue of [player entity, vehicle entity, seat number] for every new occupant
  * 
- * Used to teleport player out of seat and to reset his name on the next OnThink call
+ * Used to continue vehicle occupation on the next OnThink call
  */
 const newOccupantsQueue = [];
 
 /**
- * Queue of [player entity, vehicle entity, seat number] for every new abandoner
+ * Queue of player entity for every new abandoner
  * 
- * Used to teleport player into seat and to reset his name on the next OnThink call
+ * Used to continue vehicle abandonment on the next OnThink call
  */
 const newAbandonersQueue = [];
 
@@ -82,15 +82,20 @@ function enterVehicle(ply, vec, seatNum){
 			hpConnID: i.ConnectOutput(vec, "OnHealthChanged", updateOccupantsHealth) // hpConnID: vehicle body connection ID for the connection that damages occupants with the vehicle
 		});
 
-	// rename player to match name in logic_collision_pair
-	ply.SetEntityName('func_vehicle_player');
-	i.EntFireAtName({name: 'func_vehicle_collision' , input: "DisableCollisions"});
-
-	newOccupantsQueue.push([ply, vec, seatNum]);
+	if (seatNum == 0){
+		ply.SetEntityName('func_vehicle_player');
+		i.EntFireAtName({name: 'func_vehicle_collision', input: 'DisableCollisions'});
+		newOccupantsQueue.push([ply, vec, seatNum]);
+	}
+	else {
+		ply.SetParent(vec);
+		teleportToSeat(ply, vec, seatNum);
+	}
 }
 
-function exitVehicle(ply, vec, seatNum){
+function exitVehicle(vec, seatNum){
 	const vecData = occupiedVecs.get(vec);
+	const ply = vecData.occupants[seatNum];
 	delete vecData.occupants[seatNum];
 
 	// if all seats empty, remove from occupied vehicles
@@ -105,12 +110,15 @@ function exitVehicle(ply, vec, seatNum){
 	setThrusterState(vecName, 'right', false);
 
 	// if player is not exiting because of disconnection
-	if (ply){
-		// rename player to match name in logic_collision_pair
-		ply.SetEntityName('func_vehicle_player');
-		i.EntFireAtName({name: 'func_vehicle_collision' , input: "EnableCollisions"});
-
-		newAbandonersQueue.push([ply, vec, seatNum]);
+	if (ply.GetPlayerController() != undefined){
+		teleportToSeat(ply, vec, seatNum, true);
+		if (seatNum == 0){
+			ply.SetEntityName('func_vehicle_player');
+			i.EntFireAtName({name: 'func_vehicle_collision', input: 'EnableCollisions'});
+			newAbandonersQueue.push(ply);
+		}
+		else
+			ply.SetParent(null);	
 	}
 }
 
@@ -136,31 +144,27 @@ function inVehicle(ply){
 // Callbacks
 // --------------------
 
-i.OnRoundStart(() => {
-	// reset player names from last round
+i.OnRoundEnd(() => {
 	for (const [_, vecData] of occupiedVecs)
 		for (const seatNum in vecData.occupants)
-			vecData.occupants[seatNum].SetEntityName('');
-	
-	// clear all queues and occupations
-	occupiedVecs.clear();
-	newOccupantsQueue.length = 0;
-	newAbandonersQueue.length = 0;
+			exitVehicle(vec, seatNum);
+});
 
+i.OnRoundStart(() => {
 	for (const seatButton of i.FindEntitiesByName("*_seat*_button"))
 		i.ConnectOutput(seatButton, "OnPressed", useVehicle);
 });
 
 i.OnPlayerKill((ev) => {
 	const [vec, seatNum] = getPlayerVehicle(ev.player);
-	if (vec !== null) exitVehicle(ev.player, vec, seatNum);
+	if (vec !== null) exitVehicle(vec, seatNum);
 });
 
 i.OnPlayerDisconnect((_) => {
 	for (const [vec, vecData] of occupiedVecs)
 		for (const seatNum in vecData.occupants)
 			if (vecData.occupants[seatNum].GetPlayerController() == undefined)
-				return exitVehicle(null, vec, seatNum);
+				return exitVehicle(vec, seatNum);
 });
 
 // --------------------
@@ -180,7 +184,7 @@ function useVehicle(inputData){
 		enterVehicle(ply, vec, seatNum);
 	// already occupied but by same player, then he meant to exit
 	else if (occupant === ply)
-		exitVehicle(ply, vec, seatNum);
+		exitVehicle(vec, seatNum);
 }
 
 function updateOccupantsHealth(inputData){
@@ -193,40 +197,43 @@ function updateOccupantsHealth(inputData){
 	vecData.hp = newHp;
 }
 
+function teleportToSeat(ply, vec, seatNum, out=false){
+	const vecName = vec.GetEntityName().replace('_body', '');
+	const seatName = vecName + '_seat' + seatNum;
+	if (!out){
+		const seatIn = i.FindEntityByName(seatName + '_in');
+		ply.Teleport(seatIn.GetAbsOrigin(), seatIn.GetAbsAngles(), ZEROVECTOR);
+	}
+	else {
+		const seatOut = i.FindEntityByName(seatName + '_out');
+		const seatOutAngles = seatOut.GetAbsAngles();
+		seatOutAngles.roll = 0;
+		ply.Teleport(seatOut.GetAbsOrigin(), seatOutAngles, ZEROVECTOR);
+	}
+}
+
 // --------------------
 // OnThink
 // --------------------
 
 i.SetThink(() => {
 	while (newOccupantsQueue.length){
-			const [ply, vec, seatNum] = newOccupantsQueue.pop();
-			const vecName = vec.GetEntityName().replace('_body', '');
-			const seatName = vecName + '_seat' + seatNum;
-			const seatIn = i.FindEntityByName(seatName + '_in');
-			ply.Teleport(seatIn.GetAbsOrigin(), seatIn.GetAbsAngles(), ZEROVECTOR);
-
-			ply.SetEntityName('');
-	}
-
-	while (newAbandonersQueue.length){
-		const [ply, vec, seatNum] = newAbandonersQueue.pop();
-		const vecName = vec.GetEntityName().replace('_body', '');
-		const seatName = vecName + '_seat' + seatNum;
-		const seatOut = i.FindEntityByName(seatName + '_out');
-		const seatOutAngles = seatOut.GetAbsAngles();
-		seatOutAngles.roll = 0;
-		ply.Teleport(seatOut.GetAbsOrigin(), seatOutAngles, ZEROVECTOR);
-
+		const [ply, vec, seatNum] = newOccupantsQueue.pop();
+		teleportToSeat(ply, vec, seatNum);
 		ply.SetEntityName('');
 	}
 
+	while (newAbandonersQueue.length)
+		newAbandonersQueue.pop().SetEntityName('');
+
 	for (const [vec, vecData] of occupiedVecs){
-		const vecName = vec.GetEntityName().replace('_body', '');
 		for (const seatNum in vecData.occupants){
 			const ply = vecData.occupants[seatNum];
+			const vecName = vec.GetEntityName().replace('_body', '');
 
 			// if driver, detect his movement direction to move vehicle before teleporting him
 			if (seatNum == 0){
+
 				// stop all thrusters
 				setThrusterState(vecName, 'forward', false);
 				setThrusterState(vecName, 'right', false);
@@ -294,10 +301,14 @@ i.SetThink(() => {
 			const seatInAngles = seatIn.GetAbsAngles();
 			// if pitch or roll > 45, player exits vehicle
 			if (Math.abs(seatInAngles.pitch) > 45 || Math.abs(seatInAngles.roll) > 45)
-				exitVehicle(ply, vec, seatNum);
+				exitVehicle(vec, seatNum);
 			// teleport occupant to his seat
-			else
-				ply.Teleport(seatIn.GetAbsOrigin(), null, ZEROVECTOR);
+			else {
+				if (seatNum == 0)
+					ply.Teleport(seatIn.GetAbsOrigin(), null, ZEROVECTOR);
+				else
+					ply.Teleport(seatIn.GetAbsOrigin(), null, null);
+			}
 		}
 	}
 	i.SetNextThink(i.GetGameTime());
