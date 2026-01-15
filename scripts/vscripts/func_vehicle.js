@@ -146,7 +146,8 @@ function inVehicle(ply){
 
 i.OnRoundStart(() => {
 	for (const [vec, _] of occupiedVecs)
-		exitVehicle(vec, 0, false);
+		if ("0" in occupiedVecs.occupants)
+			exitVehicle(vec, 0, false);
 
 	for (const seatButton of i.FindEntitiesByName("*_seat*_button"))
 		i.ConnectOutput(seatButton, "OnPressed", useVehicle);
