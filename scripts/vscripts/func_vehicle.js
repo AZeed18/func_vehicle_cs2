@@ -93,7 +93,7 @@ function enterVehicle(ply, vec, seatNum){
 	}
 }
 
-function exitVehicle(vec, seatNum){
+function exitVehicle(vec, seatNum, teleport=true){
 	const vecData = occupiedVecs.get(vec);
 	const ply = vecData.occupants[seatNum];
 	delete vecData.occupants[seatNum];
@@ -111,7 +111,7 @@ function exitVehicle(vec, seatNum){
 
 	// if player is not exiting because of disconnection
 	if (ply.GetPlayerController() != undefined){
-		teleportToSeat(ply, vec, seatNum, true);
+		if (teleport) teleportToSeat(ply, vec, seatNum, true);
 		if (seatNum == 0){
 			ply.SetEntityName('func_vehicle_player');
 			i.EntFireAtName({name: 'func_vehicle_collision', input: 'EnableCollisions'});
@@ -144,20 +144,17 @@ function inVehicle(ply){
 // Callbacks
 // --------------------
 
-i.OnRoundEnd(() => {
-	for (const [_, vecData] of occupiedVecs)
-		for (const seatNum in vecData.occupants)
-			exitVehicle(vec, seatNum);
-});
-
 i.OnRoundStart(() => {
+	for (const [vec, _] of occupiedVecs)
+		exitVehicle(vec, 0, false);
+
 	for (const seatButton of i.FindEntitiesByName("*_seat*_button"))
 		i.ConnectOutput(seatButton, "OnPressed", useVehicle);
 });
 
 i.OnPlayerKill((ev) => {
 	const [vec, seatNum] = getPlayerVehicle(ev.player);
-	if (vec !== null) exitVehicle(vec, seatNum);
+	if (vec !== null) exitVehicle(vec, seatNum, false);
 });
 
 i.OnPlayerDisconnect((_) => {
@@ -171,8 +168,8 @@ i.OnPlayerDisconnect((_) => {
 // IO Functions
 // --------------------
 
-function useVehicle(inputData){
-	const [seatButton, ply] = [inputData.caller, inputData.activator];
+function useVehicle({caller, activator}){
+	const [seatButton, ply] = [caller, activator];
 
 	const vecName = seatButton.GetEntityName().replace(/_seat\d+_button/, '');
 	const vec = i.FindEntityByName(vecName + '_body');
@@ -187,8 +184,8 @@ function useVehicle(inputData){
 		exitVehicle(vec, seatNum);
 }
 
-function updateOccupantsHealth(inputData){
-	const [newHp, vec, damageSrc] = [inputData.value, inputData.caller, inputData.activator];
+function updateOccupantsHealth({value, caller, activator}){
+	const [newHp, vec, damageSrc] = [value, caller, activator];
 	const vecData = occupiedVecs.get(vec);
 	const oldHp = vecData.hp;
 
