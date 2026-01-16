@@ -82,6 +82,15 @@ function enterVehicle(ply, vec, seatNum){
 			hpConnID: i.ConnectOutput(vec, "OnHealthChanged", updateOccupantsHealth) // hpConnID: vehicle body connection ID for the connection that damages occupants with the vehicle
 		});
 
+	// spawn seat floor
+	const template = i.FindEntityByName('func_vehicle_template');
+	const floor = template.ForceSpawn()[0];
+
+	// rename seat floor
+	const vecName = vec.GetEntityName().replace('_body', '');
+	const seatName = vecName + '_seat' + seatNum;
+	floor.SetEntityName(seatName + '_floor');
+
 	if (seatNum == 0){
 		ply.SetEntityName('func_vehicle_player');
 		i.EntFireAtName({name: 'func_vehicle_collision', input: 'DisableCollisions'});
@@ -104,21 +113,27 @@ function exitVehicle(vec, seatNum, teleport=true){
 		occupiedVecs.delete(vec);
 	}
 
-	// stop all thrusters
+	// remove seat floor
 	const vecName = vec.GetEntityName().replace('_body', '');
-	setThrusterState(vecName, 'forward', false);
-	setThrusterState(vecName, 'right', false);
+	const seatName = vecName + '_seat' + seatNum;
+	const floor = i.FindEntityByName(seatName + '_floor');
+	floor.Remove();
 
 	// if player is not exiting because of disconnection
 	if (ply.GetPlayerController() != undefined){
 		if (teleport) teleportToSeat(ply, vec, seatNum, true);
 		if (seatNum == 0){
+			// disable collisions
 			ply.SetEntityName('func_vehicle_player');
 			i.EntFireAtName({name: 'func_vehicle_collision', input: 'EnableCollisions'});
 			newAbandonersQueue.push(ply);
+
+			// stop thrusters
+			setThrusterState(vecName, 'forward', false);
+			setThrusterState(vecName, 'right', false);
 		}
 		else
-			ply.SetParent(null);	
+			ply.SetParent(null);
 	}
 }
 
@@ -300,12 +315,21 @@ i.SetThink(() => {
 			// if pitch or roll > 45, player exits vehicle
 			if (Math.abs(seatInAngles.pitch) > 45 || Math.abs(seatInAngles.roll) > 45)
 				exitVehicle(vec, seatNum);
-			// teleport occupant to his seat
+			// else, teleport occupant and his seat floor to the seat
 			else {
-				if (seatNum == 0)
-					ply.Teleport(seatIn.GetAbsOrigin(), null, ZEROVECTOR);
-				else
-					ply.Teleport(seatIn.GetAbsOrigin(), null, null);
+				const floor = i.FindEntityByName(seatName + '_floor');
+				if (seatNum == 0){
+					const seatInOrigin = seatIn.GetAbsOrigin()
+					seatInOrigin.z += 2;
+					floor.Teleport(seatIn.GetAbsOrigin(), null, null);
+					ply.Teleport(seatInOrigin, null, ZEROVECTOR);
+				}
+				else {
+					const seatInOrigin = seatIn.GetAbsOrigin()
+					seatInOrigin.z += 2;
+					floor.Teleport(seatIn.GetAbsOrigin(), seatIn.GetAbsAngles(), null);
+					ply.Teleport(seatInOrigin, null, null);
+				}
 			}
 		}
 	}

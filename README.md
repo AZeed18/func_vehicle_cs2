@@ -33,21 +33,27 @@ These entities must be placed in the map
     > Attachment 2: *empty*\
     > Support multiple entities with same name: ✅\
     > Include Hierarchy: ✅
+- `func_brush`: Used as a floor for seats
+    > Brush: a 32x32 (maybe less is needed) face with material `tools/playerclip` or `tools/clip`
+    > 
+- `point_template`: Used to dynamically spawn seat floors
+    > Name: `func_vehicle_template`
+    > Template: seat floor entity (see above)
 
 ## Vehicle
 
 - Any VPhysics entity: Vehicle body
     > Name: `body`
 - `phys_thruster` (optional): Thrusters to move the vehicle, one for forward/backward and one for right/left
-    > Name: `forward\right`
+    > Name: `forward\|right`
 
 ## Seats
 
 - `func_button`: Used to enter vehicle into that seat, each seat should have a number where seat 0 is the driver's seat
     > Name: `seat{seat number}_button`
-- Any: Entity whose origin is at the bottom of where the player should be when occupying that seat
+- Any entity: Entity whose origin is at the bottom of where the player should be when occupying that seat
     > Name: `seat{seat number}_in`
-- Any: Entity whose origin is at the bottom of where the player should be when unoccupying that seat
+- Any entity: Entity whose origin is at the bottom of where the player should be when unoccupying that seat
     > Name: `seat{seat number}_out`
 
 # Current Limitations
@@ -55,6 +61,6 @@ These entities must be placed in the map
 - Vehicle will immediately stop on touching any non-occupant player
 - Vehicle collision doesn't damage occupants
 - Driver orientation doesn't follow vehicle pitch and roll, so he can appear out of vehicle if it tilts or rotates up or down
-- Weapon spread
+- ~~Weapon spread~~
 - ~~All vehicles can rotate with same torque at any velocity~~
 - ~~Can't drive on a seat that goes through the ground~~
