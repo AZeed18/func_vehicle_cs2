@@ -35,7 +35,7 @@ These entities must be placed in the map
     > Include Hierarchy: ✅
 - `func_brush`: Used as a floor for seats
     > Brush: a 32x32 (maybe less is needed) face with material `tools/playerclip` or `tools/clip`
-    > 
+    > Solidity: Always Solid
 - `point_template`: Used to dynamically spawn seat floors
     > Name: `func_vehicle_template`
     > Template: seat floor entity (see above)
