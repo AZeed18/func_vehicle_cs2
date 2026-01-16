@@ -160,9 +160,13 @@ function inVehicle(ply){
 // --------------------
 
 i.OnRoundStart(() => {
-	for (const [vec, _] of occupiedVecs)
-		if ("0" in occupiedVecs.occupants)
-			exitVehicle(vec, 0, false);
+	occupiedVecs.clear();
+
+	while (newOccupantsQueue.length)
+		newOccupantsQueue.pop()[0].SetEntityName('');
+
+	while (newAbandonersQueue.length)
+		newAbandonersQueue.pop().SetEntityName('');
 
 	for (const seatButton of i.FindEntitiesByName("*_seat*_button"))
 		i.ConnectOutput(seatButton, "OnPressed", useVehicle);
