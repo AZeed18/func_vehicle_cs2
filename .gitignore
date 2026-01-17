@@ -1,8 +1,7 @@
-models/
-maps/
 .*
 *.bak
 *.old
+/models/
+/maps/demo2.vmap
 
-!maps/demo.vmap
-!.gitignore
+!/.gitignore

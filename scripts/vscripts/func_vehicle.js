@@ -7,7 +7,7 @@ const ZEROVECTOR = {x:0, y:0, z:0};
  * 
  * Must be < 45
  */
-const DEVIATION = 30;
+const DEVIATION = 22.5;
 
 /**
  * Velocity at which the vehicle reaches maximum torque
@@ -91,15 +91,10 @@ function enterVehicle(ply, vec, seatNum){
 	const seatName = vecName + '_seat' + seatNum;
 	floor.SetEntityName(seatName + '_floor');
 
-	if (seatNum == 0){
-		ply.SetEntityName('func_vehicle_player');
-		i.EntFireAtName({name: 'func_vehicle_collision', input: 'DisableCollisions'});
-		newOccupantsQueue.push([ply, vec, seatNum]);
-	}
-	else {
-		ply.SetParent(vec);
-		teleportToSeat(ply, vec, seatNum);
-	}
+	// enable collisions
+	ply.SetEntityName('func_vehicle_player');
+	i.EntFireAtName({name: 'func_vehicle_collision', input: 'DisableCollisions'});
+	newOccupantsQueue.push([ply, vec, seatNum]);
 }
 
 function exitVehicle(vec, seatNum, teleport=true){
@@ -122,18 +117,19 @@ function exitVehicle(vec, seatNum, teleport=true){
 	// if player is not exiting because of disconnection
 	if (ply.GetPlayerController() != undefined){
 		if (teleport) teleportToSeat(ply, vec, seatNum, true);
-		if (seatNum == 0){
-			// disable collisions
-			ply.SetEntityName('func_vehicle_player');
-			i.EntFireAtName({name: 'func_vehicle_collision', input: 'EnableCollisions'});
-			newAbandonersQueue.push(ply);
 
+		ply.SetParent(null);
+
+		// enable collisions
+		ply.SetEntityName('func_vehicle_player');
+		i.EntFireAtName({name: 'func_vehicle_collision', input: 'EnableCollisions'});
+		newAbandonersQueue.push(ply);
+		
+		if (seatNum == 0){
 			// stop thrusters
 			setThrusterState(vecName, 'forward', false);
 			setThrusterState(vecName, 'right', false);
 		}
-		else
-			ply.SetParent(null);
 	}
 }
 
@@ -247,93 +243,97 @@ i.SetThink(() => {
 		for (const seatNum in vecData.occupants){
 			const ply = vecData.occupants[seatNum];
 			const vecName = vec.GetEntityName().replace('_body', '');
+			const seatName = vecName + '_seat' + seatNum;
+			const seatIn = i.FindEntityByName(seatName + '_in');
+			const seatInAngles = seatIn.GetAbsAngles();
+
+			const undrivable = Math.abs(seatInAngles.pitch) > 45 || Math.abs(seatInAngles.roll) > 40;
 
 			// if driver, detect his movement direction to move vehicle before teleporting him
 			if (seatNum == 0){
-
 				// stop all thrusters
 				setThrusterState(vecName, 'forward', false);
 				setThrusterState(vecName, 'right', false);
 
-				// get driver velocity
-				const drvVelVec = ply.GetAbsVelocity();
+				// if vehicle is undrivable, use parenting to make dirver orientation follow vehicle angles
+				if (undrivable && ply.GetParent() == undefined){
+					ply.SetParent(seatIn);
+					ply.Teleport(null, {yaw: ply.GetEyeAngles().yaw, pitch: ply.GetEyeAngles().pitch, roll: 0})
+				}
 
-				// if driver moved, move the vehicle
-				if (drvVelVec.x != 0 || drvVelVec.y != 0){
-					// find driver movement yaw relative to his yaw
-					const drvYaw = ply.GetAbsAngles().yaw;
-					const drvVelYaw = findYaw(drvVelVec);
-					const drvRelYaw = (drvVelYaw - drvYaw + 360) % 360;
+				// if drivable, drive
+				if (!undrivable) {
+					ply.SetParent(null);
 
-					// calculate torque scale
-					const vecVelVec = vec.GetAbsVelocity();
-					vecVelVec.z = 0;
-					const vecVel = magnitude(vecVelVec);
-					const scale = Math.min(vecVel/FULLTORQUEVELOCITY, 1);
+					// get driver velocity
+					const drvVelVec = ply.GetAbsVelocity();
 
-					// find vehicle movement yaw relative to its yaw
-					const vecYaw = vec.GetAbsAngles().yaw;
-					const vecVelYaw = findYaw(vecVelVec);
-					const vecRelYaw = vecVelYaw - vecYaw;
-					const forward = Math.cos(vecRelYaw / 180 * Math.PI) > 0
+					// if driver moved
+					if ((drvVelVec.x != 0 || drvVelVec.y != 0)){
+						// find driver movement yaw relative to his eyes yaw
+						const drvYaw = ply.GetEyeAngles().yaw;
+						const drvVelYaw = findYaw(drvVelVec);
+						const drvRelYaw = (drvVelYaw - drvYaw + 360) % 360;
 
-					// determine movement direction relative to driver's direction to activate the right thruster(s) (https://developer.valvesoftware.com/wiki/QAngle)
-					// forward
-					if ((drvRelYaw > 0 && drvRelYaw < 0 + DEVIATION) || (drvRelYaw > 360 - DEVIATION && drvRelYaw < 360))
-						setThrusterState(vecName, 'forward', true);
-					// backward
-					else if (drvRelYaw > 180 - DEVIATION && drvRelYaw < 180 + DEVIATION)
-						setThrusterState(vecName, 'forward', true, -1);
-					// left
-					else if (drvRelYaw > 90 - DEVIATION && drvRelYaw < 90 + DEVIATION)
-						setThrusterState(vecName, 'right', true, forward ? -scale : scale);
-					// right
-					else if (drvRelYaw > 270 - DEVIATION && drvRelYaw < 270 + DEVIATION)
-						setThrusterState(vecName, 'right', true, forward ? scale : -scale);
-					// forward left
-					else if (drvRelYaw > 45 - DEVIATION && drvRelYaw < 45 + DEVIATION){
-						setThrusterState(vecName, 'right', true, forward ? -scale : scale);
-						setThrusterState(vecName, 'forward', true, 1);
-					}
-					// forward right
-					else if (drvRelYaw > 315 - DEVIATION && drvRelYaw < 315 + DEVIATION){
-						setThrusterState(vecName, 'right', true, forward ? scale : -scale);
-						setThrusterState(vecName, 'forward', true, 1);
-					}
-					// backward left
-					else if (drvRelYaw > 135 - DEVIATION && drvRelYaw < 135 + DEVIATION){
-						setThrusterState(vecName, 'right', true, forward ? -scale : scale);
-						setThrusterState(vecName, 'forward', true, -1);
-					}
-					// backward right
-					else if	(drvRelYaw > 225 - DEVIATION && drvRelYaw < 225 + DEVIATION){
-						setThrusterState(vecName, 'right', true, forward ? scale : -scale);
-						setThrusterState(vecName, 'forward', true, -1);
+						// calculate torque scale
+						const vecVelVec = vec.GetAbsVelocity();
+						vecVelVec.z = 0;
+						const vecVel = magnitude(vecVelVec);
+						const scale = Math.min(vecVel/FULLTORQUEVELOCITY, 1);
+
+						// find vehicle movement yaw relative to its yaw
+						const vecYaw = vec.GetAbsAngles().yaw;
+						const vecVelYaw = findYaw(vecVelVec);
+						const vecRelYaw = vecVelYaw - vecYaw;
+						const forward = Math.cos(vecRelYaw / 180 * Math.PI) > 0
+
+						// determine movement direction relative to driver's direction to activate the right thruster(s) (https://developer.valvesoftware.com/wiki/QAngle)
+						// forward
+						if ((drvRelYaw > 0 && drvRelYaw < 0 + DEVIATION) || (drvRelYaw > 360 - DEVIATION && drvRelYaw < 360))
+							setThrusterState(vecName, 'forward', true);
+						// backward
+						else if (drvRelYaw > 180 - DEVIATION && drvRelYaw < 180 + DEVIATION)
+							setThrusterState(vecName, 'forward', true, -1);
+						// left
+						else if (drvRelYaw > 90 - DEVIATION && drvRelYaw < 90 + DEVIATION)
+							setThrusterState(vecName, 'right', true, forward ? -scale : scale);
+						// right
+						else if (drvRelYaw > 270 - DEVIATION && drvRelYaw < 270 + DEVIATION)
+							setThrusterState(vecName, 'right', true, forward ? scale : -scale);
+						// forward left
+						else if (drvRelYaw > 45 - DEVIATION && drvRelYaw < 45 + DEVIATION){
+							setThrusterState(vecName, 'right', true, forward ? -scale : scale);
+							setThrusterState(vecName, 'forward', true, 1);
+						}
+						// forward right
+						else if (drvRelYaw > 315 - DEVIATION && drvRelYaw < 315 + DEVIATION){
+							setThrusterState(vecName, 'right', true, forward ? scale : -scale);
+							setThrusterState(vecName, 'forward', true, 1);
+						}
+						// backward left
+						else if (drvRelYaw > 135 - DEVIATION && drvRelYaw < 135 + DEVIATION){
+							setThrusterState(vecName, 'right', true, forward ? -scale : scale);
+							setThrusterState(vecName, 'forward', true, -1);
+						}
+						// backward right
+						else if	(drvRelYaw > 225 - DEVIATION && drvRelYaw < 225 + DEVIATION){
+							setThrusterState(vecName, 'right', true, forward ? scale : -scale);
+							setThrusterState(vecName, 'forward', true, -1);
+						}
 					}
 				}
 			}
 
-			const seatName = vecName + '_seat' + seatNum;
-			const seatIn = i.FindEntityByName(seatName + '_in');
-			const seatInAngles = seatIn.GetAbsAngles();
-			// if pitch or roll > 45, player exits vehicle
-			if (Math.abs(seatInAngles.pitch) > 45 || Math.abs(seatInAngles.roll) > 45)
-				exitVehicle(vec, seatNum);
-			// else, teleport occupant and his seat floor to the seat
+			const floor = i.FindEntityByName(seatName + '_floor');
+			const newOrigin = seatIn.GetAbsOrigin();
+			newOrigin.z += 2;
+			if (seatNum == 0 && !undrivable){
+				floor.Teleport(seatIn.GetAbsOrigin(), ZEROVECTOR, null);
+				ply.Teleport(newOrigin, null, ZEROVECTOR);
+			}
 			else {
-				const floor = i.FindEntityByName(seatName + '_floor');
-				if (seatNum == 0){
-					const seatInOrigin = seatIn.GetAbsOrigin()
-					seatInOrigin.z += 2;
-					floor.Teleport(seatIn.GetAbsOrigin(), null, null);
-					ply.Teleport(seatInOrigin, null, ZEROVECTOR);
-				}
-				else {
-					const seatInOrigin = seatIn.GetAbsOrigin()
-					seatInOrigin.z += 2;
-					floor.Teleport(seatIn.GetAbsOrigin(), seatIn.GetAbsAngles(), null);
-					ply.Teleport(seatInOrigin, null, null);
-				}
+				floor.Teleport(seatIn.GetAbsOrigin(), seatInAngles, null);
+				ply.Teleport(newOrigin, null, null);
 			}
 		}
 	}

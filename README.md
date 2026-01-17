@@ -44,8 +44,11 @@ These entities must be placed in the map
 
 - Any VPhysics entity: Vehicle body
     > Name: `body`
-- `phys_thruster` (optional): Thrusters to move the vehicle, one for forward/backward and one for right/left
-    > Name: `forward\|right`
+- `phys_thruster` (optional): Used to move the vehicle forward/backward
+    > Name: `forward`
+    > Apply Torque: ❌
+- `phys_torque` (optional): Used to move the vehicle right/left
+    > Name: `right`
 
 ## Seats
 
@@ -60,7 +63,7 @@ These entities must be placed in the map
 
 - Vehicle will immediately stop on touching any non-occupant player
 - Vehicle collision doesn't damage occupants
-- Driver orientation doesn't follow vehicle pitch and roll, so he can appear out of vehicle if it tilts or rotates up or down
+- Driver orientation doesn't follow vehicle pitch and roll unless vehicle is considered undrivable due to its orientation being at specific roll and/or pitch, so driver can appear out of vehicle if it tilts or rotates up or down
 - ~~Weapon spread~~
 - ~~All vehicles can rotate with same torque at any velocity~~
 - ~~Can't drive on a seat that goes through the ground~~
