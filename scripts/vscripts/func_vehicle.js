@@ -90,8 +90,14 @@ function enterVehicle(ply, vec, seatNum){
 	const vecName = vec.GetEntityName().replace('_body', '');
 	const seatName = vecName + '_seat' + seatNum;
 	floor.SetEntityName(seatName + '_floor');
+	
+	// parent passenger to seat
+	if (seatNum != 0){
+		const seatIn = i.FindEntityByName(seatName + '_in');
+		ply.SetParent(seatIn);
+	}
 
-	// enable collisions
+	// disable collisions
 	ply.SetEntityName('func_vehicle_player');
 	i.EntFireAtName({name: 'func_vehicle_collision', input: 'DisableCollisions'});
 	newOccupantsQueue.push([ply, vec, seatNum]);
