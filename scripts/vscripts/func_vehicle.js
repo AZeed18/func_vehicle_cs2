@@ -15,6 +15,11 @@ const DEVIATION = 22.5;
 const FULLTORQUEVELOCITY = 300;
 
 /**
+ * Angle at which wheels steer
+ */
+const STEERINGANGLE = 30;
+
+/**
  * Map of occupied vehicle entities to dictionaries of their data
  */
 const occupiedVecs = new Map();
@@ -34,9 +39,7 @@ const newOccupantsQueue = [];
 const newAbandonersQueue = [];
 
 function setThrusterState(vecName, direction, on, forceScale=1){
-	const thruster = i.FindEntityByName(vecName + '_' + direction);
-
-	if (thruster != undefined){
+	for (const thruster of i.FindEntitiesByName(vecName + '_' + direction)){
 		i.EntFireAtTarget({target: thruster, input: "Scale", value: forceScale});
 		if (on)
 			i.EntFireAtTarget({target: thruster, input: "Activate"});
@@ -90,7 +93,7 @@ function enterVehicle(ply, vec, seatNum){
 	const vecName = vec.GetEntityName().replace('_body', '');
 	const seatName = vecName + '_seat' + seatNum;
 	floor.SetEntityName(seatName + '_floor');
-	
+
 	// parent passenger to seat
 	if (seatNum != 0){
 		const seatIn = i.FindEntityByName(seatName + '_in');
@@ -130,7 +133,7 @@ function exitVehicle(vec, seatNum, teleport=true){
 		ply.SetEntityName('func_vehicle_player');
 		i.EntFireAtName({name: 'func_vehicle_collision', input: 'EnableCollisions'});
 		newAbandonersQueue.push(ply);
-		
+
 		if (seatNum == 0){
 			// stop thrusters
 			setThrusterState(vecName, 'forward', false);
@@ -173,6 +176,10 @@ i.OnRoundStart(() => {
 	for (const seatButton of i.FindEntitiesByName("*_seat*_button"))
 		i.ConnectOutput(seatButton, "OnPressed", useVehicle);
 });
+
+// Testing
+for (const seatButton of i.FindEntitiesByName("*_seat*_button"))
+	i.ConnectOutput(seatButton, "OnPressed", useVehicle);
 
 i.OnPlayerKill((ev) => {
 	const [vec, seatNum] = getPlayerVehicle(ev.player);
@@ -261,6 +268,12 @@ i.SetThink(() => {
 				setThrusterState(vecName, 'forward', false);
 				setThrusterState(vecName, 'right', false);
 
+				// wheeled vehicles: update wheels angular constraint anchor
+				const vecAngles = vec.GetAbsAngles();
+				const anchor = i.FindEntityByName(vecName + "_wheels_angular_anchor");
+				if (anchor != undefined)
+					anchor.Teleport(null, vecAngles, null);
+
 				// if vehicle is undrivable, use parenting to make dirver orientation follow vehicle angles
 				if (undrivable && ply.GetParent() == undefined){
 					ply.SetParent(seatIn);
@@ -288,7 +301,7 @@ i.SetThink(() => {
 						const scale = Math.min(vecVel/FULLTORQUEVELOCITY, 1);
 
 						// find vehicle movement yaw relative to its yaw
-						const vecYaw = vec.GetAbsAngles().yaw;
+						const vecYaw = vecAngles.yaw;
 						const vecVelYaw = findYaw(vecVelVec);
 						const vecRelYaw = vecVelYaw - vecYaw;
 						const forward = Math.cos(vecRelYaw / 180 * Math.PI) > 0
@@ -301,28 +314,75 @@ i.SetThink(() => {
 						else if (drvRelYaw > 180 - DEVIATION && drvRelYaw < 180 + DEVIATION)
 							setThrusterState(vecName, 'forward', true, -1);
 						// left
-						else if (drvRelYaw > 90 - DEVIATION && drvRelYaw < 90 + DEVIATION)
+						else if (drvRelYaw > 90 - DEVIATION && drvRelYaw < 90 + DEVIATION){
+							// wheeled vehicles: update wheels angular constraint anchor
+							const anchor = i.FindEntityByName(vecName + "_wheels_angular_anchor");
+							if (anchor != undefined){
+								vecAngles.yaw += STEERINGANGLE;
+								anchor.Teleport(null, vecAngles, null);
+							}
+
+							// activate thrusters
 							setThrusterState(vecName, 'right', true, forward ? -scale : scale);
+						}
 						// right
-						else if (drvRelYaw > 270 - DEVIATION && drvRelYaw < 270 + DEVIATION)
+						else if (drvRelYaw > 270 - DEVIATION && drvRelYaw < 270 + DEVIATION){
+							// wheeled vehicles: update wheels angular constraint anchor
+							const anchor = i.FindEntityByName(vecName + "_wheels_angular_anchor");
+							if (anchor != undefined){
+								vecAngles.yaw -= STEERINGANGLE;
+								anchor.Teleport(null, vecAngles, null);
+							}
+
+							// activate thrusters
 							setThrusterState(vecName, 'right', true, forward ? scale : -scale);
+						}
 						// forward left
 						else if (drvRelYaw > 45 - DEVIATION && drvRelYaw < 45 + DEVIATION){
+							// wheeled vehicles: update wheels angular constraint anchor
+							const anchor = i.FindEntityByName(vecName + "_wheels_angular_anchor");
+							if (anchor != undefined){
+								vecAngles.yaw += STEERINGANGLE;
+								anchor.Teleport(null, vecAngles, null);
+							}
+
+							// activate thrusters
 							setThrusterState(vecName, 'right', true, forward ? -scale : scale);
 							setThrusterState(vecName, 'forward', true, 1);
 						}
 						// forward right
 						else if (drvRelYaw > 315 - DEVIATION && drvRelYaw < 315 + DEVIATION){
+							// wheeled vehicles: update wheels angular constraint anchor
+							const anchor = i.FindEntityByName(vecName + "_wheels_angular_anchor");
+							if (anchor != undefined){
+								vecAngles.yaw -= STEERINGANGLE;
+								anchor.Teleport(null, vecAngles, null);
+							}
+
+							// activate thrusters
 							setThrusterState(vecName, 'right', true, forward ? scale : -scale);
 							setThrusterState(vecName, 'forward', true, 1);
 						}
 						// backward left
 						else if (drvRelYaw > 135 - DEVIATION && drvRelYaw < 135 + DEVIATION){
+							// wheeled vehicles: update wheels angular constraint anchor
+							const anchor = i.FindEntityByName(vecName + "_wheels_angular_anchor");
+							if (anchor != undefined){
+								vecAngles.yaw += STEERINGANGLE;
+								anchor.Teleport(null, vecAngles, null);
+							}
+
+							// activate thrusters
 							setThrusterState(vecName, 'right', true, forward ? -scale : scale);
 							setThrusterState(vecName, 'forward', true, -1);
 						}
 						// backward right
 						else if	(drvRelYaw > 225 - DEVIATION && drvRelYaw < 225 + DEVIATION){
+							// wheeled vehicles: update wheels angular constraint anchor
+							vecAngles.yaw -= STEERINGANGLE;
+							anchor.Teleport(null, vecAngles, null);
+
+							// activate thrusters
 							setThrusterState(vecName, 'right', true, forward ? scale : -scale);
 							setThrusterState(vecName, 'forward', true, -1);
 						}
