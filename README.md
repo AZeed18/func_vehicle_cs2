@@ -35,18 +35,18 @@ These entities must be placed in the map
     > Support multiple entities with same name: ✅\
     > Include Hierarchy: ✅
 - `func_tracktrain`: Used as a floor for seats
-    > Brush: a 32x32 (maybe less is needed) face with material `tools/playerclip`
+    > Brush: a 32x32 (maybe less is needed) face with material `tools/playerclip`\
     > Solidity: Always Solid
 - `point_template`: Used to dynamically spawn seat floors
-    > Name: `func_vehicle_template`
-    > Template: seat floor entity (see above)
+    > Name: `func_vehicle_template`\
+    > Template: seat floor entity
 
 ## Vehicle
 
 - Any VPhysics entity: Vehicle body
     > Name: `body`
 - `phys_thruster`/`phys_torque` (optional): Used to move the vehicle forward/backward
-    > Name: `forward`
+    > Name: `forward`\
     > Apply Torque: ❌
 - `phys_thruster`/`phys_torque` (optional): Used to move the vehicle right/left
     > Name: `right`
@@ -55,13 +55,13 @@ These entities must be placed in the map
 
 - Any VPhysics entity: Wheels
 - `func_tracktrain` (optional): Used to steer
-    > Name: `wheels_angular_anchor`
-    > Parent: vehicle body
-    > Spawnflags: passable
+    > Name: `wheels_angular_anchor`\
+    > Parent: vehicle body\
+    > Spawnflags: passable\
     > Brush: anything with any invisible texture
 - Any angular constraint: Used to constarint steering wheels to angular anchor, only constraint x-axis and z-axis amgular motion
-    > Attachment 1: `wheels_angular_anchor`
-    > Attachment 2: wheels
+    > Attachment 1: `wheels_angular_anchor`\
+    > Attachment 2: wheels\
     > Treat Entity 1 as Infinite Mass: ✅
 - Any linear constraint: Used to constarint steering wheels to angular anchor, constraint all linear motion
 - `phys_hinge` (optional): Used to constarint non-steering wheels to vehicle body, set hinge axis to wheel's side
