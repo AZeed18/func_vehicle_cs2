@@ -10,6 +10,7 @@ A demo map with a vehicle is in maps folder
 - You can create vehicles without any entity I/O
 - You can have as many seats and place them where you want
 - You can choose to ignore thruster of one or more directions
+- Support for wheeled vehicles
 
 # Map Setup
 
@@ -33,8 +34,8 @@ These entities must be placed in the map
     > Attachment 2: *empty*\
     > Support multiple entities with same name: ✅\
     > Include Hierarchy: ✅
-- `func_brush`: Used as a floor for seats
-    > Brush: a 32x32 (maybe less is needed) face with material `tools/playerclip` or `tools/clip`
+- `func_tracktrain`: Used as a floor for seats
+    > Brush: a 32x32 (maybe less is needed) face with material `tools/playerclip`
     > Solidity: Always Solid
 - `point_template`: Used to dynamically spawn seat floors
     > Name: `func_vehicle_template`
@@ -44,11 +45,26 @@ These entities must be placed in the map
 
 - Any VPhysics entity: Vehicle body
     > Name: `body`
-- `phys_thruster` (optional): Used to move the vehicle forward/backward
+- `phys_thruster`/`phys_torque` (optional): Used to move the vehicle forward/backward
     > Name: `forward`
     > Apply Torque: ❌
-- `phys_torque` (optional): Used to move the vehicle right/left
+- `phys_thruster`/`phys_torque` (optional): Used to move the vehicle right/left
     > Name: `right`
+
+### Wheels
+
+- Any VPhysics entity: Wheels
+- `func_tracktrain` (optional): Used to steer
+    > Name: `wheels_angular_anchor`
+    > Parent: vehicle body
+    > Spawnflags: passable
+    > Brush: anything with any invisible texture
+- Any angular constraint: Used to constarint steering wheels to angular anchor, only constraint x-axis and z-axis amgular motion
+    > Attachment 1: `wheels_angular_anchor`
+    > Attachment 2: wheels
+    > Treat Entity 1 as Infinite Mass: ✅
+- Any linear constraint: Used to constarint steering wheels to angular anchor, constraint all linear motion
+- `phys_hinge` (optional): Used to constarint non-steering wheels to vehicle body, set hinge axis to wheel's side
 
 ## Seats
 
