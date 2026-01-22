@@ -46,8 +46,7 @@ These entities must be placed in the map
 - Any VPhysics entity: Vehicle body
     > Name: `body`
 - `phys_thruster`/`phys_torque` (optional): Used to move the vehicle forward/backward
-    > Name: `forward`\
-    > Apply Torque: ❌
+    > Name: `forward`
 - `phys_thruster`/`phys_torque` (optional): Used to move the vehicle right/left
     > Name: `right`
 
