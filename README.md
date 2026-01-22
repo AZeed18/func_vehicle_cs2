@@ -22,13 +22,13 @@ These entities must be placed in the map
 
 - `point_script`: To load the script
     > cs_script: the script
-- `logic_collision_pair`: Used to disable collision between vehicle and occupants, you may place one for each vehicle or use wildcards to match multiple/all vehicles
+- `logic_collision_pair`: Used to disable collisions between vehicle and occupants, you may place one for each vehicle or use wildcards to match multiple/all vehicles
     > Name: `func_vehicle_collision`\
     > Attachment 1: `func_vehicle_player`\
     > Attachment 2: vehicle body(ies) name/pattern\
     > Support multiple entities with same name: ✅\
     > Include Hierarchy: ✅
-- `logic_collision_pair` (optional): Used to disable collision between occupant and the world, needed to enable driving inside the ground.. Optional for vehicles where the driver seat can't get inside the ground
+- `logic_collision_pair` (optional): Used to disable collisions between occupant and the world, needed to enable driving inside the ground... Optional for vehicles where the driver seat can't get inside the ground
     > Name: `func_vehicle_collision`\
     > Attachment 1: `func_vehicle_player`\
     > Attachment 2: *empty*\
@@ -43,7 +43,7 @@ These entities must be placed in the map
 
 ### Wheels
 
-- `logic_collision_pair`: Used to disable collision between occupant and vehicle wheels
+- `logic_collision_pair`: Used to disable collisions between occupant and vehicle wheels
     > Name: `func_vehicle_collision`\
     > Attachment 1: `func_vehicle_player`\
     > Attachment 2: vehicle wheel(s) name/pattern\
@@ -72,9 +72,12 @@ These entities must be placed in the map
     > Attachment 2: wheels\
     > Treat Entity 1 as Infinite Mass: ✅
     > No Collision Until Break: ✅
-- Any linear constraint: Used to constarint steering wheels to angular anchor, constraint all linear motion
+- Any linear constraint: Used to constarint steering wheels to angular anchor, constraint all linear motion and set no collision until break
 - `phys_hinge` (optional): Used to constarint non-steering wheels to vehicle body, set hinge axis to wheel's side and set no collision until break
-- `logic_collision_pair`: Used to disable collision between vehicle wheels and body hierarchies
+- `logic_collision_pair` (optional): Used to disable collisions between vehicle wheels and body hierarchies
+    > Attachment 1: vehicle body\
+    > Attachment 2: vehicle wheel(s) name/pattern\
+    > Support multiple entities with same name: ✅\
     > Include Hierarchy: ✅
 
 ## Seats
