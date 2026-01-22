@@ -17,7 +17,7 @@ A demo map with a vehicle is in maps folder
 These entities must be placed in the map
 
 > [!IMPORTANT]
-> - You must either include vehicle name prefix (i.e., `{vehicle name}_`) in the name of every vehicle/seat-specific entity or create a prefab containing vehicle entities and instead set the prefab name to vehicle name in Hammer
+> - You must either include a vehicle-specific prefix (i.e., `{vehicle name}_`) in the name of every vehicle/seat-specific entity or create a prefab containing all such entities without prefixes
 > - Remember to set parents of entities as needed
 
 - `point_script`: To load the script
