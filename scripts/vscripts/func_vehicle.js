@@ -53,7 +53,6 @@ class Vehicle {
 		const vecRelYaw = vecVelYaw - vecYaw;
 
 		// calculate torque scale
-		vecVelVec.z = 0;
 		const vecVel = magnitude(vecVelVec);
 		const vecRelYawCos = Math.cos(vecRelYaw / 180 * Math.PI);
 		const scale = Math.min(vecVel/Vehicle.FULLTORQUEVELOCITY, 1) * Math.sign(vecRelYawCos);
@@ -67,25 +66,21 @@ class Vehicle {
 			this.wheelsAnchor.Teleport(null, vecAngles, null);
 		}
 
-		// thrusters/torques
-		if (forward){
+		// forward thrusters/torques
+		if (forward)
 			this.scaleThrusters('forward', 1);
-			if (right)
-				this.scaleThrusters('right', -scale);
-			else if (left)
-				this.scaleThrusters('right', scale);
-		}
-		else if (backward){
+		else if (backward)
 			this.scaleThrusters('forward', -1);
-			if (right)
-				this.scaleThrusters('right', scale);
-			else if (left)
-				this.scaleThrusters('right', -scale);
-		}
-		else {
+		else
 			this.scaleThrusters('forward', 0);
+
+		// steering thrusters/torques
+		if (right)
+			this.scaleThrusters('right', scale);
+		else if (left)
+			this.scaleThrusters('right', -scale);
+		else
 			this.scaleThrusters('right', 0);
-		}
 	}
 }
 
@@ -195,18 +190,16 @@ class Seat {
 }
 
 function magnitude(v){
-	return Math.sqrt(v.x**2 + v.y**2 + v.z**2)
+	return Math.sqrt(v.x**2 + v.y**2)
 }
 
 function findYaw(v){
-	v.z = 0;
-
 	const m = magnitude(v);
 
 	// calculate normalized velocity vector (i.e., direction vector)
 	const d = {
-		x: v.x/=m,
-		y: v.y/=m
+		x: v.x/m,
+		y: v.y/m
 	};
 
 	// calculate the yaw of direction vector
