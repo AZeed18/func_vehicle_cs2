@@ -10,45 +10,77 @@ A demo map with a vehicle is in maps folder
 - You can create vehicles without any entity I/O
 - You can have as many seats and place them where you want
 - You can choose to ignore thruster of one or more directions
+- Support for wheeled vehicles
 
 # Map Setup
 
 These entities must be placed in the map
 
 > [!IMPORTANT]
-> - You must either include vehicle name prefix (i.e., `{vehicle name}_`) in the name of every vehicle/seat-specific entity or create a prefab containing vehicle entities and instead set the prefab name to vehicle name in Hammer
+> - You must either include a vehicle-specific prefix (i.e., `{vehicle name}_`) in the name of every vehicle/seat-specific entity or create a prefab containing all such entities without prefixes
 > - Remember to set parents of entities as needed
 
 - `point_script`: To load the script
     > cs_script: `scripts/vscripts/func_vehicle.vjs`
 - `logic_collision_pair`: Used to disable collision between vehicle and occupants, you may place one for each vehicle or use wildcards to match multiple/all vehicles
+    > cs_script: the script
+- `logic_collision_pair`: Used to disable collisions between vehicle and occupants, you may place one for each vehicle or use wildcards to match multiple/all vehicles
     > Name: `func_vehicle_collision`\
     > Attachment 1: `func_vehicle_player`\
-    > Attachment 2: vehicle body/bodies name/pattern\
+    > Attachment 2: vehicle body(ies) name/pattern\
     > Support multiple entities with same name: ✅\
     > Include Hierarchy: ✅
-- `logic_collision_pair` (optional): Used to disable collision between occupant and the world, needed to enable driving inside the ground.. Optional for vehicles where the driver seat can't get inside the ground
+- `logic_collision_pair` (optional): Used to disable collisions between occupant and the world, needed to enable driving inside the ground... Optional for vehicles where the driver seat can't get inside the ground
     > Name: `func_vehicle_collision`\
     > Attachment 1: `func_vehicle_player`\
     > Attachment 2: *empty*\
     > Support multiple entities with same name: ✅\
     > Include Hierarchy: ✅
-- `func_brush`: Used as a floor for seats
-    > Brush: a 32x32 (maybe less is needed) face with material `tools/playerclip` or `tools/clip`
+- `func_tracktrain`: Used as a floor for seats to prevent weapon spread
+    > Brush: a 32x32 (maybe less is needed) face with material `tools/playerclip`\
     > Solidity: Always Solid
 - `point_template`: Used to dynamically spawn seat floors
-    > Name: `func_vehicle_template`
-    > Template: seat floor entity (see above)
+    > Name: `func_vehicle_template`\
+    > Template: seat floor entity
+
+### Wheels
+
+- `logic_collision_pair`: Used to disable collisions between occupant and vehicle wheels
+    > Name: `func_vehicle_collision`\
+    > Attachment 1: `func_vehicle_player`\
+    > Attachment 2: vehicle wheel(s) name/pattern\
+    > Support multiple entities with same name: ✅\
+    > Include Hierarchy: ✅
 
 ## Vehicle
 
 - Any VPhysics entity: Vehicle body
     > Name: `body`
-- `phys_thruster` (optional): Used to move the vehicle forward/backward
+- `phys_thruster`/`phys_torque` (optional): Used to move the vehicle forward/backward
     > Name: `forward`
-    > Apply Torque: ❌
-- `phys_torque` (optional): Used to move the vehicle right/left
+- `phys_thruster`/`phys_torque` (optional): Used to move the vehicle right/left
     > Name: `right`
+
+### Wheels
+
+- Any VPhysics entity: Wheels
+- `func_tracktrain` (optional): Used to steer
+    > Name: `wheels_angular_anchor`\
+    > Parent: vehicle body\
+    > Spawnflags: passable\
+    > Brush: anything with any invisible texture
+- Any angular constraint: Used to constarint steering wheels to angular anchor, only constraint x-axis and z-axis amgular motion
+    > Attachment 1: `wheels_angular_anchor`\
+    > Attachment 2: wheels\
+    > Treat Entity 1 as Infinite Mass: ✅
+    > No Collision Until Break: ✅
+- Any linear constraint: Used to constarint steering wheels to angular anchor, constraint all linear motion and set no collision until break
+- `phys_hinge` (optional): Used to constarint non-steering wheels to vehicle body, set hinge axis to wheel's side and set no collision until break
+- `logic_collision_pair` (optional): Used to disable collisions between vehicle wheels and body hierarchies
+    > Attachment 1: vehicle body\
+    > Attachment 2: vehicle wheel(s) name/pattern\
+    > Support multiple entities with same name: ✅\
+    > Include Hierarchy: ✅
 
 ## Seats
 
