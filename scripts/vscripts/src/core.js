@@ -1,8 +1,8 @@
-import { Instance } from 'cs_script/point_script';
+import { Instance as i } from "cs_script/point_script";
 
-const ZEROVECTOR = {x:0, y:0, z:0};
+export const ZEROVECTOR = {x:0, y:0, z:0};
 
-class Vehicle {
+export class Vehicle {
 	/**
 	 * How much degrees allowed to deviate from known directions as error caused by player rotating while moving
 	 * 
@@ -21,8 +21,8 @@ class Vehicle {
 	static STEERINGANGLE = 30;
 
 	constructor(vecName){
-		this.body = Instance.FindEntityByName(vecName + '_body');
-		this.wheelsAnchor = Instance.FindEntityByName(vecName + '_wheels_angular_anchor');
+		this.body = i.FindEntityByName(vecName + '_body');
+		this.wheelsAnchor = i.FindEntityByName(vecName + '_wheels_angular_anchor');
 
 		this.thrusters = {};
 		this.thrusters.forward = vecName + '_forward';
@@ -31,13 +31,13 @@ class Vehicle {
 
 	toggleThrusters(direction, on){
 		if (on)
-			Instance.EntFireAtName({name: this.thrusters[direction], input: "Activate"});
+			i.EntFireAtName({name: this.thrusters[direction], input: "Activate"});
 		else
-			Instance.EntFireAtName({name: this.thrusters[direction], input: "Deactivate"});
+			i.EntFireAtName({name: this.thrusters[direction], input: "Deactivate"});
 	}
 
 	scaleThrusters(direction, scale){
-		Instance.EntFireAtName({name: this.thrusters[direction], input: "Scale", value: scale});
+		i.EntFireAtName({name: this.thrusters[direction], input: "Scale", value: scale});
 	}
 
 	isWheeled(){
@@ -89,7 +89,7 @@ class Vehicle {
 	}
 }
 
-class Seat {
+export class Seat {
 	/**
 	 * Queue of every new occupied seat
 	 * 
@@ -120,8 +120,8 @@ class Seat {
 		const vecName = this.name.replace(/_seat(\d+)$/, '');
 		this.vehicle = new Vehicle(vecName);
 
-		this.seatIn = Instance.FindEntityByName(this.name + '_in');
-		this.seatOut = Instance.FindEntityByName(this.name + '_out');
+		this.seatIn = i.FindEntityByName(this.name + '_in');
+		this.seatOut = i.FindEntityByName(this.name + '_out');
 
 		this.occupy(occupant);
 	}
@@ -130,7 +130,7 @@ class Seat {
 		Seat.playerSeats.set(occupant, this);
 
 		this.occupant = occupant;
-		this.floor = Instance.FindEntityByName('func_vehicle_template').ForceSpawn()[0];
+		this.floor = i.FindEntityByName('func_vehicle_template').ForceSpawn()[0];
 
 		// parent passenger to seat
 		if (!this.isDriver())
@@ -138,7 +138,7 @@ class Seat {
 
 		// disable collisions
 		occupant.SetEntityName('func_vehicle_player');
-		Instance.EntFireAtName({name: 'func_vehicle_collision', input: 'DisableCollisions'});
+		i.EntFireAtName({name: 'func_vehicle_collision', input: 'DisableCollisions'});
 		Seat.newOccupantsQueue.push(this);
 
 		// start all thrusters at scale 0
@@ -168,7 +168,7 @@ class Seat {
 
 			// enable collisions
 			this.occupant.SetEntityName('func_vehicle_player');
-			Instance.EntFireAtName({name: 'func_vehicle_collision', input: 'EnableCollisions'});
+			i.EntFireAtName({name: 'func_vehicle_collision', input: 'EnableCollisions'});
 			Seat.newAbandonersQueue.push(this.occupant);
 		}
 		
@@ -198,7 +198,7 @@ function magnitude(v){
 	return Math.sqrt(v.x**2 + v.y**2 + v.z**2)
 }
 
-function findYaw(v){
+export function findYaw(v){
 	v.z = 0;
 
 	const m = magnitude(v);
@@ -207,7 +207,7 @@ function findYaw(v){
 	const d = {
 		x: v.x/=m,
 		y: v.y/=m
-	};
+	}
 
 	// calculate the yaw of direction vector
 	return Math.atan2(d.y, d.x) / Math.PI * 180;
@@ -217,7 +217,7 @@ function findYaw(v){
  * If player not in vehicle: occupy seat
  * If player using his seat's door: exit
  */
-function useVehicle({caller, activator}){
+export function useVehicle({caller, activator}){
 	const [seatButton, ply] = [caller, activator];
 
 	const seat = Seat.occupiedSeats.get(seatButton);
@@ -231,113 +231,13 @@ function useVehicle({caller, activator}){
 		seat.deoccupy();
 }
 
-Instance.OnPlayerKill(({player}) => {
+i.OnPlayerKill(({player}) => {
 	const seat = Seat.playerSeats.get(player);
 	if (seat != undefined) seat.deoccupy();
 });
 
-Instance.OnPlayerDisconnect((_) => {
+i.OnPlayerDisconnect((_) => {
 	for (const [_, seat] of Seat.occupiedSeats)
 		if (seat.occupant == undefined || seat.occupant.GetPlayerController() == undefined)
 			return seat.deoccupy();
 });
-
-Instance.OnRoundStart(() => {
-	Seat.occupiedSeats.clear();
-
-	while (Seat.newOccupantsQueue.length)
-		Seat.newOccupantsQueue.pop().occupant.SetEntityName('');
-
-	while (Seat.newAbandonersQueue.length)
-		Seat.newAbandonersQueue.pop().SetEntityName('');
-
-	for (const seatButton of Instance.FindEntitiesByName("*_seat*_button"))
-		Instance.ConnectOutput(seatButton, "OnPressed", useVehicle);
-});
-
-// For testing
-for (const seatButton of Instance.FindEntitiesByName("*_seat*_button"))
-	Instance.ConnectOutput(seatButton, "OnPressed", useVehicle);
-
-Instance.SetThink(() => {
-	while (Seat.newOccupantsQueue.length){
-		const seat = Seat.newOccupantsQueue.pop();
-		seat.teleportOccupant();
-		seat.occupant.SetEntityName('');
-	}
-
-	while (Seat.newAbandonersQueue.length)
-		Seat.newAbandonersQueue.pop().SetEntityName('');
-
-	for (const [_, seat] of Seat.occupiedSeats){
-		const seatInAngles = seat.seatIn.GetAbsAngles();
-		const undrivable = Math.abs(seatInAngles.pitch) > 45 || Math.abs(seatInAngles.roll) > 40;
-
-		// if driver, detect his movement direction to move vehicle before teleporting him
-		if (seat.isDriver()){
-			// reset vehicle
-			seat.vehicle.drive(0,0,0,0);
-
-			// if vehicle is undrivable, use parenting to make dirver orientation follow vehicle angles
-			if (undrivable && seat.occupant.GetParent() == undefined){
-				seat.occupant.SetParent(seat.seatIn);
-				seat.occupant.Teleport(null, {yaw: seat.occupant.GetEyeAngles().yaw, pitch: seat.occupant.GetEyeAngles().pitch, roll: 0});
-			}
-
-			// if drivable, drive
-			if (!undrivable){
-				seat.occupant.SetParent(null);
-
-				// get driver velocity
-				const drvVelVec = seat.occupant.GetAbsVelocity();
-
-				// if driver moved
-				if ((drvVelVec.x != 0 || drvVelVec.y != 0)){
-					// find driver movement yaw relative to his eyes yaw
-					const drvYaw = seat.occupant.GetEyeAngles().yaw;
-					const drvVelYaw = findYaw(drvVelVec);
-					const drvRelYaw = (drvVelYaw - drvYaw + 360) % 360;
-
-					// determine movement direction relative to driver's direction to activate the right thruster(s) (https://developer.valvesoftware.com/wiki/QAngle)
-					// forward
-					if ((drvRelYaw > 0 && drvRelYaw < 0 + Vehicle.DEVIATION) || (drvRelYaw > 360 - Vehicle.DEVIATION && drvRelYaw < 360))
-						seat.vehicle.drive(1,0,0,0);
-					// backward
-					else if (drvRelYaw > 180 - Vehicle.DEVIATION && drvRelYaw < 180 + Vehicle.DEVIATION)
-						seat.vehicle.drive(0,1,0,0);
-					// left
-					else if (drvRelYaw > 90 - Vehicle.DEVIATION && drvRelYaw < 90 + Vehicle.DEVIATION)
-						seat.vehicle.drive(0,0,0,1);
-					// right
-					else if (drvRelYaw > 270 - Vehicle.DEVIATION && drvRelYaw < 270 + Vehicle.DEVIATION)
-						seat.vehicle.drive(0,0,1,0);
-					// forward left
-					else if (drvRelYaw > 45 - Vehicle.DEVIATION && drvRelYaw < 45 + Vehicle.DEVIATION)
-						seat.vehicle.drive(1,0,0,1);
-					// forward right
-					else if (drvRelYaw > 315 - Vehicle.DEVIATION && drvRelYaw < 315 + Vehicle.DEVIATION)
-						seat.vehicle.drive(1,0,1,0);
-					// backward left
-					else if (drvRelYaw > 135 - Vehicle.DEVIATION && drvRelYaw < 135 + Vehicle.DEVIATION)
-						seat.vehicle.drive(0,1,0,1);
-					// backward right
-					else if	(drvRelYaw > 225 - Vehicle.DEVIATION && drvRelYaw < 225 + Vehicle.DEVIATION)
-						seat.vehicle.drive(0,1,1,0);
-				}
-			}
-		}
-
-		const newOrigin = seat.seatIn.GetAbsOrigin();
-		newOrigin.z += 2;
-		if (seat.isDriver() && !undrivable){
-			seat.floor.Teleport(seat.seatIn.GetAbsOrigin(), ZEROVECTOR, null);
-			seat.occupant.Teleport(newOrigin, null, ZEROVECTOR);
-		}
-		else {
-			seat.floor.Teleport(seat.seatIn.GetAbsOrigin(), seatInAngles, null);
-			seat.occupant.Teleport(newOrigin, null, null);
-		}
-	}
-	Instance.SetNextThink(Instance.GetGameTime());
-});
-Instance.SetNextThink(Instance.GetGameTime());

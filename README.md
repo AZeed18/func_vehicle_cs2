@@ -20,7 +20,7 @@ These entities must be placed in the map
 > - Remember to set parents of entities as needed
 
 - `point_script`: To load the script
-    > cs_script: the script
+    > cs_script: `scripts/vscripts/func_vehicle.vjs`
 - `logic_collision_pair`: Used to disable collision between vehicle and occupants, you may place one for each vehicle or use wildcards to match multiple/all vehicles
     > Name: `func_vehicle_collision`\
     > Attachment 1: `func_vehicle_player`\
