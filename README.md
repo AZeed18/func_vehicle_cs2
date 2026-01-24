@@ -11,6 +11,7 @@ A demo map with a vehicle is in maps folder
 - You can have as many seats and place them where you want
 - You can choose to ignore thruster of one or more directions
 - Support for wheeled vehicles
+- Support for steering wheels and similar
 
 # Map Setup
 
@@ -61,16 +62,24 @@ These entities must be placed in the map
 - `phys_thruster`/`phys_torque` (optional): Used to move the vehicle right/left
     > Name: `right`
 
+### Steering Entities
+
+You can add any number of entities you want or none that rotate around its axis on steering, this can be used for steering wheels for instance
+
+For them to be detected, include the following in their names: `[steer {rotation} {right steering angle}]`
+
+For example, `[steer yaw 20]` means that this entity will rotate a 20 degrees yaw rotation on steering right and -20 on sterring left
+
 ### Wheels
 
 - Any VPhysics entity: Wheels
-- `func_tracktrain` (optional): Used to steer
-    > Name: `wheels_angular_anchor`\
+- `func_tracktrain` (optional): Used as an angular constraint anchor for steering wheels to steer
+    > Name: [see here](#steering_entities)
     > Parent: vehicle body\
     > Spawnflags: passable\
     > Brush: anything with any invisible texture
 - Any angular constraint: Used to constarint steering wheels to angular anchor, only constraint x-axis and z-axis amgular motion
-    > Attachment 1: `wheels_angular_anchor`\
+    > Attachment 1: angular anchor\
     > Attachment 2: wheels\
     > Treat Entity 1 as Infinite Mass: ✅
     > No Collision Until Break: ✅

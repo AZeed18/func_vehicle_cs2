@@ -20,31 +20,36 @@ export class Vehicle {
 	 */
 	static STEERINGANGLE = 30;
 
+	steeringInfo = []
+
+	lastSteer = null;
+
 	constructor(vecName){
 		this.body = i.FindEntityByName(vecName + '_body');
-		this.wheelsAnchor = i.FindEntityByName(vecName + '_wheels_angular_anchor');
 
-		this.thrusters = {};
-		this.thrusters.forward = vecName + '_forward';
-		this.thrusters.right = vecName + '_right';
-	}
+		this.forward = vecName + '_forward';
+		this.right = vecName + '_right';
 
-	toggleThrusters(direction, on){
-		if (on)
-			i.EntFireAtName({name: this.thrusters[direction], input: "Activate"});
-		else
-			i.EntFireAtName({name: this.thrusters[direction], input: "Deactivate"});
+		// parse steering info
+		for (const infoEntity of i.FindEntitiesByName(vecName + '*[steer *]*')){
+			const info = {};
+			info.entity = infoEntity;
+			[info.rotation, info.angle] = infoEntity.GetEntityName().match(/.*\[steer (.*?)\].*/)[1].split(' ');
+			info.angle = Number(info.angle)
+
+			this.steeringInfo.push(info);
+		}
 	}
 
 	scaleThrusters(direction, scale){
-		i.EntFireAtName({name: this.thrusters[direction], input: "Scale", value: scale});
+		i.EntFireAtName({name: this[direction], input: "Scale", value: scale});
 	}
 
 	isWheeled(){
 		return this.wheelsAnchor != undefined;
 	}
 
-	drive(forward=false, backward=false, right=false, left=false){
+	drive(forward=0, backward=0, right=0, left=0){
 		// find vehicle movement yaw relative to its yaw
 		const vecAngles = this.body.GetAbsAngles();
 		const vecYaw = vecAngles.yaw;
@@ -57,14 +62,27 @@ export class Vehicle {
 		const vecRelYawCos = Math.cos(vecRelYaw / 180 * Math.PI);
 		const scale = Math.min(vecVel/Vehicle.FULLTORQUEVELOCITY, 1) * Math.sign(vecRelYawCos);
 
-		// steer by updating wheels anchor angle
-		if (this.isWheeled()){
+		// steer
+		for (const info of this.steeringInfo){
+			const steeredAngles = info.entity.GetAbsAngles();
 			if (right)
-				vecAngles.yaw -= Vehicle.STEERINGANGLE;
+				steeredAngles[info.rotation] += info.angle;
 			else if (left)
-				vecAngles.yaw += Vehicle.STEERINGANGLE;
-			this.wheelsAnchor.Teleport(null, vecAngles, null);
+				steeredAngles[info.rotation] -= info.angle;
+			if (this.lastSteer === 'right')
+				steeredAngles[info.rotation] -= info.angle;
+			else if (this.lastSteer === 'left')
+				steeredAngles[info.rotation] += info.angle;
+			info.entity.Teleport(null, steeredAngles, null);
 		}
+
+		// remember current steer direction
+		if (right)
+			this.lastSteer = 'right';
+		else if (left)
+			this.lastSteer = 'left';
+		else
+			this.lastSteer = null;
 
 		// forward thrusters/torques
 		if (forward)
@@ -106,8 +124,6 @@ export class Seat {
 	}
 
 	constructor(seatButton, occupant){
-		Seat.occupiedSeats.set(seatButton, this);
-		
 		this.seatButton = seatButton;
 		this.name = this.seatButton.GetEntityName().replace(/_button$/, '');
 
@@ -119,11 +135,11 @@ export class Seat {
 		this.seatOut = i.FindEntityByName(this.name + '_out');
 
 		this.occupy(occupant);
+
+		Seat.occupiedSeats.set(seatButton, this);
 	}
 
 	occupy(occupant){
-		Seat.playerSeats.set(occupant, this);
-
 		this.occupant = occupant;
 		this.floor = i.FindEntityByName('func_vehicle_template').ForceSpawn()[0];
 
@@ -136,20 +152,14 @@ export class Seat {
 		i.EntFireAtName({name: 'func_vehicle_collision', input: 'DisableCollisions'});
 		Seat.newOccupantsQueue.push(this);
 
-		// start all thrusters at scale 0
-		if (this.isDriver()){
-			this.vehicle.toggleThrusters('forward', true);
-			this.vehicle.scaleThrusters('forward', 0);
-			this.vehicle.toggleThrusters('right', true);
-			this.vehicle.scaleThrusters('right', 0);
-		}
+		Seat.playerSeats.set(occupant, this);
 	}
 
 	deoccupy(teleport=true){
 		// stop all thrusters
 		if (this.isDriver()){
-			this.vehicle.toggleThrusters('forward', false);
-			this.vehicle.toggleThrusters('right', false);
+			this.vehicle.scaleThrusters('forward', 0);
+			this.vehicle.scaleThrusters('right', 0);
 		}
 
 		// remove seat floor
