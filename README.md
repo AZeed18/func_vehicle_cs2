@@ -74,14 +74,14 @@ For example, `[steer yaw 20]` means that this entity will rotate a 20 degrees ya
 
 - Any VPhysics entity: Wheels
 - `func_tracktrain` (optional): Used as an angular constraint anchor for steering wheels to steer
-    > Name: [see here](#steering_entities)
+    > Name: [see here](#steering-entities)\
     > Parent: vehicle body\
     > Spawnflags: passable\
     > Brush: anything with any invisible texture
 - Any angular constraint: Used to constarint steering wheels to angular anchor, only constraint x-axis and z-axis amgular motion
     > Attachment 1: angular anchor\
     > Attachment 2: wheels\
-    > Treat Entity 1 as Infinite Mass: ✅
+    > Treat Entity 1 as Infinite Mass: ✅\
     > No Collision Until Break: ✅
 - Any linear constraint: Used to constarint steering wheels to angular anchor, constraint all linear motion and set no collision until break
 - `phys_hinge` (optional): Used to constarint non-steering wheels to vehicle body, set hinge axis to wheel's side and set no collision until break
