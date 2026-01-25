@@ -97,7 +97,7 @@ For example, `[steer yaw 20]` means that this entity will rotate a 20 degrees ya
     > Name: `seat{seat number}_button`
 - Any entity: Entity whose origin is at the bottom of where the player should be when occupying that seat
     > Name: `seat{seat number}_in`
-- Any entity: Entity whose origin is at the bottom of where the player should be when unoccupying that seat
+- Any entity (optional): Entity whose origin is at the bottom of where the player should be when unoccupying that seat
     > Name: `seat{seat number}_out`
 
 # Current Limitations

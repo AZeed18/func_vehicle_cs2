@@ -58,7 +58,7 @@ export class Vehicle {
 		const vecRelYaw = vecVelYaw - vecYaw;
 
 		// calculate torque scale
-		const vecVel = magnitude(vecVelVec);
+		const vecVel = magnitude2d(vecVelVec);
 		const vecRelYawCos = Math.cos(vecRelYaw / 180 * Math.PI);
 		const scale = Math.min(vecVel/Vehicle.FULLTORQUEVELOCITY, 1) * Math.sign(vecRelYawCos);
 
@@ -169,8 +169,6 @@ export class Seat {
 		if (this.occupant != undefined && this.occupant.GetPlayerController() != undefined){
 			if (teleport) this.teleportOccupant(false);
 
-			this.occupant.SetParent(null);
-
 			// enable collisions
 			this.occupant.SetEntityName('func_vehicle_player');
 			i.EntFireAtName({name: 'func_vehicle_collision', input: 'EnableCollisions'});
@@ -192,19 +190,35 @@ export class Seat {
 		if (inside)
 			this.occupant.Teleport(this.seatIn.GetAbsOrigin(), this.seatIn.GetAbsAngles(), ZEROVECTOR);
 		else {
-			const seatOutAngles = this.seatOut.GetAbsAngles();
-			seatOutAngles.roll = 0;
-			this.occupant.Teleport(this.seatOut.GetAbsOrigin(), seatOutAngles, ZEROVECTOR);
+			// if no out of seat entity, estimate out of seat position
+			if (this.seatOut == undefined){
+				this.occupant.SetParent(this.seatIn);
+				const seatInLocalY = this.seatIn.GetLocalOrigin().y;
+				i.EntFireAtTarget({target: this.occupant, input: "SetLocalOrigin", value: `0 ${seatInLocalY > 0 ? 64 : -64} 16`})
+				i.EntFireAtTarget({target: this.occupant, input: "ClearParent"})
+
+				// look at the door
+				const occupantAngles = this.vehicle.body.GetAbsAngles();
+				occupantAngles.roll = this.occupant.GetAbsAngles().roll;
+				occupantAngles.yaw += seatInLocalY > 0 ? -90 : 90;
+				this.occupant.Teleport(null, occupantAngles, null);
+			}
+			else {
+				const seatOutAngles = this.seatOut.GetAbsAngles();
+				seatOutAngles.roll = 0;
+				this.occupant.Teleport(this.seatOut.GetAbsOrigin(), seatOutAngles, ZEROVECTOR);
+				this.occupant.SetParent(null);
+			}
 		}
 	}
 }
 
-function magnitude(v){
+function magnitude2d(v){
 	return Math.sqrt(v.x**2 + v.y**2)
 }
 
 export function findYaw(v){
-	const m = magnitude(v);
+	const m = magnitude2d(v);
 
 	// calculate normalized velocity vector (i.e., direction vector)
 	const d = {
