@@ -3,26 +3,16 @@ import {
 	ZEROVECTOR,
 	Vehicle,
 	Seat,
-	useVehicle,
 	findYaw
 } from "./core";
 
 i.OnRoundStart(() => {
-	Seat.occupiedSeats.clear();
-
-	while (Seat.newOccupantsQueue.length)
-		Seat.newOccupantsQueue.pop().occupant.SetEntityName('');
-
-	while (Seat.newAbandonersQueue.length)
-		Seat.newAbandonersQueue.pop().SetEntityName('');
-
-	for (const seatButton of i.FindEntitiesByName("*_seat*_button"))
-		i.ConnectOutput(seatButton, "OnPressed", useVehicle);
+	Seat.reset();
+	Seat.connectButtons();
 });
 
 // For testing
-for (const seatButton of i.FindEntitiesByName("*_seat*_button"))
-	i.ConnectOutput(seatButton, "OnPressed", useVehicle);
+Seat.connectButtons();
 
 i.SetThink(() => {
 	while (Seat.newOccupantsQueue.length){

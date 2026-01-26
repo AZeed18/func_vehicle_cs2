@@ -119,6 +119,26 @@ class Seat {
 	static occupiedSeats = new Map(); // seat button entity => occupied Seat
 	static playerSeats = new Map(); // player entity => occupied Seat
 
+	static connectButtons(){
+		for (const seatButton of Instance.FindEntitiesByName("*_seat*_button"))
+			Instance.ConnectOutput(seatButton, "OnPressed", useVehicle);
+	}
+
+	static reset(){
+		Seat.occupiedSeats.clear();
+		Seat.playerSeats.clear();
+		Seat.newOccupantsQueue.length = 0;
+		Seat.newAbandonersQueue.length = 0;
+
+		Instance.EntFireAtName({name: 'func_vehicle_floor', input: 'Kill'});
+
+		for (const ply of Instance.FindEntitiesByClass('player')){
+			ply.SetEntityName('func_vehicle_player');
+			Seat.newAbandonersQueue.push(ply);
+		}
+		Instance.EntFireAtName({name: 'func_vehicle_collision', input: 'EnableCollisions'});
+	}
+
 	static inVehicle(ply){
 		return Seat.playerSeats.get(ply) != undefined;
 	}
@@ -190,7 +210,7 @@ class Seat {
 		if (inside)
 			this.occupant.Teleport(this.seatIn.GetAbsOrigin(), this.seatIn.GetAbsAngles(), ZEROVECTOR);
 		else {
-			// if no out of seat entity, estimate out of seat position
+			// if no out of seat entity, estimate out of seat position and orientation
 			if (this.seatOut == undefined){
 				this.occupant.SetParent(this.seatIn);
 				const seatInLocalY = this.seatIn.GetLocalOrigin().y;
@@ -260,21 +280,12 @@ Instance.OnPlayerDisconnect((_) => {
 });
 
 Instance.OnRoundStart(() => {
-	Seat.occupiedSeats.clear();
-
-	while (Seat.newOccupantsQueue.length)
-		Seat.newOccupantsQueue.pop().occupant.SetEntityName('');
-
-	while (Seat.newAbandonersQueue.length)
-		Seat.newAbandonersQueue.pop().SetEntityName('');
-
-	for (const seatButton of Instance.FindEntitiesByName("*_seat*_button"))
-		Instance.ConnectOutput(seatButton, "OnPressed", useVehicle);
+	Seat.reset();
+	Seat.connectButtons();
 });
 
 // For testing
-for (const seatButton of Instance.FindEntitiesByName("*_seat*_button"))
-	Instance.ConnectOutput(seatButton, "OnPressed", useVehicle);
+Seat.connectButtons();
 
 Instance.SetThink(() => {
 	while (Seat.newOccupantsQueue.length){

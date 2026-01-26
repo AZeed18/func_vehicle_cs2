@@ -119,6 +119,26 @@ export class Seat {
 	static occupiedSeats = new Map(); // seat button entity => occupied Seat
 	static playerSeats = new Map(); // player entity => occupied Seat
 
+	static connectButtons(){
+		for (const seatButton of i.FindEntitiesByName("*_seat*_button"))
+			i.ConnectOutput(seatButton, "OnPressed", useVehicle);
+	}
+
+	static reset(){
+		Seat.occupiedSeats.clear();
+		Seat.playerSeats.clear();
+		Seat.newOccupantsQueue.length = 0;
+		Seat.newAbandonersQueue.length = 0;
+
+		i.EntFireAtName({name: 'func_vehicle_floor', input: 'Kill'});
+
+		for (const ply of i.FindEntitiesByClass('player')){
+			ply.SetEntityName('func_vehicle_player');
+			Seat.newAbandonersQueue.push(ply);
+		}
+		i.EntFireAtName({name: 'func_vehicle_collision', input: 'EnableCollisions'});
+	}
+
 	static inVehicle(ply){
 		return Seat.playerSeats.get(ply) != undefined;
 	}
@@ -190,7 +210,7 @@ export class Seat {
 		if (inside)
 			this.occupant.Teleport(this.seatIn.GetAbsOrigin(), this.seatIn.GetAbsAngles(), ZEROVECTOR);
 		else {
-			// if no out of seat entity, estimate out of seat position
+			// if no out of seat entity, estimate out of seat position and orientation
 			if (this.seatOut == undefined){
 				this.occupant.SetParent(this.seatIn);
 				const seatInLocalY = this.seatIn.GetLocalOrigin().y;
@@ -234,7 +254,7 @@ export function findYaw(v){
  * If player not in vehicle: occupy seat
  * If player using his seat's door: exit
  */
-export function useVehicle({caller, activator}){
+function useVehicle({caller, activator}){
 	const [seatButton, ply] = [caller, activator];
 
 	const seat = Seat.occupiedSeats.get(seatButton);

@@ -38,6 +38,7 @@ These entities must be placed in the map
     > Support multiple entities with same name: ✅\
     > Include Hierarchy: ✅
 - `func_tracktrain`: Used as a floor for seats to prevent weapon spread
+    > Name: `func_vehicle_floor`
     > Brush: a 32x32 (maybe less is needed) face with material `tools/playerclip`\
     > Solidity: Always Solid
 - `point_template`: Used to dynamically spawn seat floors
