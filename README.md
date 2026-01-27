@@ -12,6 +12,7 @@ A demo map with a vehicle is in maps folder
 - You can choose to ignore thruster of one or more directions
 - Support for wheeled vehicles
 - Support for steering wheels and similar
+- Player is forced out of vehicle if another player tries to enter
 
 # Map Setup
 

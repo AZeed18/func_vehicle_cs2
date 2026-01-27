@@ -15,11 +15,6 @@ class Vehicle {
 	 */
 	static FULLTORQUEVELOCITY = 300;
 
-	/**
-	 * Angle at which wheels steer
-	 */
-	static STEERINGANGLE = 30;
-
 	steeringInfo = []
 
 	lastSteer = null;
@@ -193,7 +188,6 @@ class Seat {
 				Instance.EntFireAtTarget({target: collision, input: 'EnableCollisions'});
 				Instance.EntFireAtTarget({target: collision, input: 'Kill'});
 			}
-			Seat.newAbandonersQueue.push(this.occupant);
 		}
 
 		// remove seat from occupied seats
@@ -220,7 +214,7 @@ class Seat {
 
 				// look at the door
 				const occupantAngles = this.vehicle.body.GetAbsAngles();
-				occupantAngles.roll = this.occupant.GetAbsAngles().roll;
+				occupantAngles.roll = 0;
 				occupantAngles.yaw += seatInLocalY > 0 ? -90 : 90;
 				this.occupant.Teleport(null, occupantAngles, null);
 			}
@@ -266,6 +260,9 @@ function useVehicle({caller, activator}){
 	}
 	// already occupied but by same player, then he meant to exit
 	else if (seat.occupant === ply)
+		seat.deoccupy();
+	// occupied by another player, force him out
+	else
 		seat.deoccupy();
 }
 
