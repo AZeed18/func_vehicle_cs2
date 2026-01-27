@@ -167,6 +167,9 @@ export class Seat {
 		Seat.newOccupantsQueue.push(this);
 
 		Seat.playerSeats.set(this.occupant, this);
+
+		// API
+		i.EntFireAtTarget({target: this.seatIn, input: 'FireUser1', value: this.name.replace(/.*(\d+)/, '$1'), activator: this.occupant})
 	}
 
 	deoccupy(teleport=true){
@@ -195,6 +198,9 @@ export class Seat {
 		
 		// remove occupant from player seats map
 		Seat.playerSeats.delete(this.occupant);
+
+		// API
+		i.EntFireAtTarget({target: this.seatIn, input: 'FireUser2', value: this.name.replace(/.*(\d+)/, '$1'), activator: this.occupant})
 	}
 
 	isDriver(){

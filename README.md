@@ -13,6 +13,7 @@ A demo map with a vehicle is in maps folder
 - Support for wheeled vehicles
 - Support for steering wheels and similar
 - Player is forced out of vehicle if another player tries to enter
+- API
 
 # Map Setup
 
@@ -97,9 +98,14 @@ For example, `[steer yaw 20]` means that this entity will rotate a 20 degrees ya
 - Any entity (optional): Entity whose origin is at the bottom of where the player should be when unoccupying that seat
     > Name: `seat{seat number}_out`
 
+# API
+
+- `OnUser1` is fired at `seat*_in` on entering, activator is the player
+- `OnUser2` is fired at `seat*_in` on exiting, activator is the player
+
 # Current Limitations
 
-- Vehicle will immediately stop on touching any non-occupant player
+- Vehicle will immediately slow down on touching any non-occupant player
 - Vehicle collision doesn't damage occupants
 - Driver orientation doesn't follow vehicle pitch and roll unless vehicle is considered undrivable due to its orientation being at specific roll and/or pitch, so driver can appear out of vehicle if it tilts or rotates up or down
 - ~~Weapon spread~~
