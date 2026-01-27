@@ -6,23 +6,13 @@ import {
 	findYaw
 } from "./core";
 
-i.OnRoundStart(() => {
-	Seat.reset();
-	Seat.connectButtons();
-});
-
-// For testing
-Seat.connectButtons();
-
 i.SetThink(() => {
 	while (Seat.newOccupantsQueue.length){
 		const seat = Seat.newOccupantsQueue.pop();
+		if (!seat.isDriver())
+			seat.occupant.SetParent(seat.seatIn);
 		seat.teleportOccupant();
-		seat.occupant.SetEntityName('');
 	}
-
-	while (Seat.newAbandonersQueue.length)
-		Seat.newAbandonersQueue.pop().SetEntityName('');
 
 	for (const [_, seat] of Seat.occupiedSeats){
 		const seatInAngles = seat.seatIn.GetAbsAngles();

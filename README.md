@@ -23,36 +23,31 @@ These entities must be placed in the map
 
 - `point_script`: To load the script
     > cs_script: `scripts/vscripts/func_vehicle.vjs`
-- `logic_collision_pair`: Used to disable collision between vehicle and occupants, you may place one for each vehicle or use wildcards to match multiple/all vehicles
-    > cs_script: the script
 - `logic_collision_pair`: Used to disable collisions between vehicle and occupants, you may place one for each vehicle or use wildcards to match multiple/all vehicles
-    > Name: `func_vehicle_collision`\
-    > Attachment 1: `func_vehicle_player`\
-    > Attachment 2: vehicle body(ies) name/pattern\
-    > Support multiple entities with same name: ✅\
-    > Include Hierarchy: ✅
-- `logic_collision_pair` (optional): Used to disable collisions between occupant and the world, needed to enable driving inside the ground... Optional for vehicles where the driver seat can't get inside the ground
-    > Name: `func_vehicle_collision`\
-    > Attachment 1: `func_vehicle_player`\
-    > Attachment 2: *empty*\
-    > Support multiple entities with same name: ✅\
-    > Include Hierarchy: ✅
+    > Attachment 1: vehicle body name/pattern\
+    > Support multiple entities with same name: ✅ (if using a pattern)\
+    > Include Hierarchy: ✅\
+    > Start with collisions disabled: ✅
+- `logic_collision_pair`: Used to disable collisions between occupant and the world, needed to enable driving inside the ground... Not needed if driver seat can't get inside the ground in any vehicle
+    > Attachment 1: *empty*\
+    > Include Hierarchy: ✅\
+    > Start with collisions disabled: ✅
 - `func_tracktrain`: Used as a floor for seats to prevent weapon spread
     > Name: `func_vehicle_floor`
     > Brush: a 32x32 (maybe less is needed) face with material `tools/playerclip`\
     > Solidity: Always Solid
-- `point_template`: Used to dynamically spawn seat floors
+- `point_template`: Used to dynamically spawn seat floors and collision pair entities
     > Name: `func_vehicle_template`\
-    > Template: seat floor entity
+    > Template 1: seat floor entity\
+    > Template 2...: collision pair entities
 
 ### Wheels
 
 - `logic_collision_pair`: Used to disable collisions between occupant and vehicle wheels
-    > Name: `func_vehicle_collision`\
-    > Attachment 1: `func_vehicle_player`\
-    > Attachment 2: vehicle wheel(s) name/pattern\
-    > Support multiple entities with same name: ✅\
-    > Include Hierarchy: ✅
+    > Attachment 1: vehicle wheel name/pattern\
+    > Support multiple entities with same name: ✅ (if using a pattern)\
+    > Include Hierarchy: ✅\
+    > Start with collisions disabled: ✅
 
 ## Vehicle
 

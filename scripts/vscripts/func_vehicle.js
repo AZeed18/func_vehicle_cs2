@@ -26,7 +26,6 @@ class Vehicle {
 
 	constructor(vecName){
 		this.body = Instance.FindEntityByName(vecName + '_body');
-
 		this.forward = vecName + '_forward';
 		this.right = vecName + '_right';
 
@@ -110,38 +109,40 @@ class Seat {
 	 */
 	static newOccupantsQueue = [];
 
-	/**
-	 * Queue of player entity for every new abandoner
-	 * 
-	 * Used to continue vehicle abandonment on the next OnThink call
+	/** 
+	 * A count of all occupations since round start, used to give players unique names instead of seat names that can be repeated for a player not occupying any vehicle
 	 */
-	static newAbandonersQueue = [];
+	static counter = 0;
 	static occupiedSeats = new Map(); // seat button entity => occupied Seat
 	static playerSeats = new Map(); // player entity => occupied Seat
 
-	static connectButtons(){
+	static init(){
 		for (const seatButton of Instance.FindEntitiesByName("*_seat*_button"))
 			Instance.ConnectOutput(seatButton, "OnPressed", useVehicle);
 	}
 
 	static reset(){
+		for (const [seatButton, seat] of Seat.occupiedSeats){
+			seat.deoccupy();
+			seatButton.Remove();
+		}
+
 		Seat.occupiedSeats.clear();
 		Seat.playerSeats.clear();
+		Seat.counter = 0;
 		Seat.newOccupantsQueue.length = 0;
-		Seat.newAbandonersQueue.length = 0;
+	}
 
-		Instance.EntFireAtName({name: 'func_vehicle_floor', input: 'Kill'});
-
-		for (const ply of Instance.FindEntitiesByClass('player')){
-			ply.SetEntityName('func_vehicle_player');
-			Seat.newAbandonersQueue.push(ply);
-		}
-		Instance.EntFireAtName({name: 'func_vehicle_collision', input: 'EnableCollisions'});
+	static resetNames(){
+		for (const occupant of Instance.FindEntitiesByName('*_func_vehicle_occupant*'))
+			occupant.SetEntityName('');
 	}
 
 	static inVehicle(ply){
 		return Seat.playerSeats.get(ply) != undefined;
 	}
+
+	collisions = []
 
 	constructor(seatButton, occupant){
 		this.seatButton = seatButton;
@@ -161,18 +162,16 @@ class Seat {
 
 	occupy(occupant){
 		this.occupant = occupant;
-		this.floor = Instance.FindEntityByName('func_vehicle_template').ForceSpawn()[0];
-
-		// parent passenger to seat
-		if (!this.isDriver())
-			this.occupant.SetParent(this.seatIn);
+		[this.floor, ...this.collisions] = Instance.FindEntityByName('func_vehicle_template').ForceSpawn();
 
 		// disable collisions
-		occupant.SetEntityName('func_vehicle_player');
-		Instance.EntFireAtName({name: 'func_vehicle_collision', input: 'DisableCollisions'});
+		this.occupant.SetEntityName(this.name + '_func_vehicle_occupant' + ++this.counter);
+		for (const collision of this.collisions)
+			Instance.EntFireAtTarget({target: collision, input: 'DisableCollisionsWith', value: this.occupant.GetEntityName()});
+
 		Seat.newOccupantsQueue.push(this);
 
-		Seat.playerSeats.set(occupant, this);
+		Seat.playerSeats.set(this.occupant, this);
 	}
 
 	deoccupy(teleport=true){
@@ -190,11 +189,13 @@ class Seat {
 			if (teleport) this.teleportOccupant(false);
 
 			// enable collisions
-			this.occupant.SetEntityName('func_vehicle_player');
-			Instance.EntFireAtName({name: 'func_vehicle_collision', input: 'EnableCollisions'});
+			for (const collision of this.collisions){
+				Instance.EntFireAtTarget({target: collision, input: 'EnableCollisions'});
+				Instance.EntFireAtTarget({target: collision, input: 'Kill'});
+			}
 			Seat.newAbandonersQueue.push(this.occupant);
 		}
-		
+
 		// remove seat from occupied seats
 		Seat.occupiedSeats.delete(this.seatButton);
 		
@@ -268,6 +269,16 @@ function useVehicle({caller, activator}){
 		seat.deoccupy();
 }
 
+Seat.resetNames();
+Seat.init();
+
+Instance.OnRoundEnd(Seat.reset);
+
+Instance.OnRoundStart(() => {
+	Seat.resetNames();
+	Seat.init();
+});
+
 Instance.OnPlayerKill(({player}) => {
 	const seat = Seat.playerSeats.get(player);
 	if (seat != undefined) seat.deoccupy();
@@ -279,23 +290,13 @@ Instance.OnPlayerDisconnect((_) => {
 			return seat.deoccupy();
 });
 
-Instance.OnRoundStart(() => {
-	Seat.reset();
-	Seat.connectButtons();
-});
-
-// For testing
-Seat.connectButtons();
-
 Instance.SetThink(() => {
 	while (Seat.newOccupantsQueue.length){
 		const seat = Seat.newOccupantsQueue.pop();
+		if (!seat.isDriver())
+			seat.occupant.SetParent(seat.seatIn);
 		seat.teleportOccupant();
-		seat.occupant.SetEntityName('');
 	}
-
-	while (Seat.newAbandonersQueue.length)
-		Seat.newAbandonersQueue.pop().SetEntityName('');
 
 	for (const [_, seat] of Seat.occupiedSeats){
 		const seatInAngles = seat.seatIn.GetAbsAngles();
