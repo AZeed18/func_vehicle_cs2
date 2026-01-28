@@ -2,6 +2,8 @@ import { Instance } from 'cs_script/point_script';
 
 const ZEROVECTOR = {x:0, y:0, z:0};
 
+const ZEROANGLES = {pitch:0, yaw:0, roll:0};
+
 class Vehicle {
 	/**
 	 * How much degrees allowed to deviate from known directions as error caused by player rotating while moving
@@ -410,7 +412,7 @@ Instance.SetThink(() => {
 		const newOrigin = seat.seatIn.GetAbsOrigin();
 		newOrigin.z += 2;
 		if (seat.isDriver() && !undrivable){
-			seat.floor.Teleport(seat.seatIn.GetAbsOrigin(), ZEROVECTOR, null);
+			seat.floor.Teleport(seat.seatIn.GetAbsOrigin(), ZEROANGLES, null);
 			seat.occupant.Teleport(newOrigin, null, ZEROVECTOR);
 		}
 		else {

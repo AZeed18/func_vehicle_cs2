@@ -2,6 +2,8 @@ import { Instance as i } from "cs_script/point_script";
 
 export const ZEROVECTOR = {x:0, y:0, z:0};
 
+export const ZEROANGLES = {pitch:0, yaw:0, roll:0};
+
 export class Vehicle {
 	/**
 	 * How much degrees allowed to deviate from known directions as error caused by player rotating while moving

@@ -1,6 +1,7 @@
 import { Instance as i } from "cs_script/point_script";
 import {
 	ZEROVECTOR,
+	ZEROANGLES,
 	Vehicle,
 	Seat,
 	findYaw
@@ -78,7 +79,7 @@ i.SetThink(() => {
 		const newOrigin = seat.seatIn.GetAbsOrigin();
 		newOrigin.z += 2;
 		if (seat.isDriver() && !undrivable){
-			seat.floor.Teleport(seat.seatIn.GetAbsOrigin(), ZEROVECTOR, null);
+			seat.floor.Teleport(seat.seatIn.GetAbsOrigin(), ZEROANGLES, null);
 			seat.occupant.Teleport(newOrigin, null, ZEROVECTOR);
 		}
 		else {
