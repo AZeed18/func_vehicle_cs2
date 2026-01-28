@@ -106,7 +106,7 @@ For example, `[steer yaw 20]` means that this entity will rotate a 20 degrees ya
 # Current Limitations
 
 - Vehicle will immediately slow down on touching any non-occupant player
-- Vehicle collision doesn't damage occupants
+- ~~Vehicle collision doesn't damage occupants~~
 - Driver orientation doesn't follow vehicle pitch and roll unless vehicle is considered undrivable due to its orientation being at specific roll and/or pitch, so driver can appear out of vehicle if it tilts or rotates up or down
 - ~~Weapon spread~~
 - ~~All vehicles can rotate with same torque at any velocity~~

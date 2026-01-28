@@ -15,6 +15,10 @@ export class Vehicle {
 	 */
 	static FULLTORQUEVELOCITY = 300;
 
+	static occupiedVecs = [];
+
+	static DAMAGETHRESHOLD = 5;
+
 	steeringInfo = []
 
 	lastSteer = null;
@@ -33,6 +37,12 @@ export class Vehicle {
 
 			this.steeringInfo.push(info);
 		}
+
+		this.velVec = ZEROVECTOR;
+		this.ang = Object.values(this.body.GetAbsAngles());
+		this.angVelVec = [0, 0, 0];
+
+		Vehicle.occupiedVecs.push(this);
 	}
 
 	scaleThrusters(direction, scale){
@@ -43,16 +53,13 @@ export class Vehicle {
 		return this.wheelsAnchor != undefined;
 	}
 
-	drive(forward=0, backward=0, right=0, left=0){
+	drive(forward=false, backward=false, right=false, left=false){
 		// find vehicle movement yaw relative to its yaw
-		const vecAngles = this.body.GetAbsAngles();
-		const vecYaw = vecAngles.yaw;
-		const vecVelVec = this.body.GetAbsVelocity();
-		const vecVelYaw = findYaw(vecVelVec);
-		const vecRelYaw = vecVelYaw - vecYaw;
+		const vecVelYaw = findYaw(this.velVec);
+		const vecRelYaw = vecVelYaw - this.ang[1];
 
 		// calculate torque scale
-		const vecVel = magnitude2d(vecVelVec);
+		const vecVel = magnitude2d(this.velVec);
 		const vecRelYawCos = Math.cos(vecRelYaw / 180 * Math.PI);
 		const scale = Math.min(vecVel/Vehicle.FULLTORQUEVELOCITY, 1) * Math.sign(vecRelYawCos);
 
@@ -94,6 +101,34 @@ export class Vehicle {
 		else
 			this.scaleThrusters('right', 0);
 	}
+
+
+	updateDamage(){
+		this.damage = 0;
+
+		// linear damage
+		const velVec = this.body.GetAbsVelocity();
+		const acc = magnitude2d(velVec)-magnitude2d(this.velVec);
+		const linDamage = Math.round(acc**2/50000);
+		this.velVec = velVec;
+		if (linDamage >= Vehicle.DAMAGETHRESHOLD)
+			this.damage += linDamage;
+
+		// angular damage
+		const ang = Object.values(this.body.GetAbsAngles());
+		let angDamage = 0;
+		for (let i=0; i<3; i++){
+			const angVel = Math.sign(ang[i]) == Math.sign(this.ang[i]) ? ang[i]-this.ang[i] : ang[i]+this.ang[i];
+			this.ang[i] = ang[i];
+			const angAcc = angVel-this.angVelVec[i];
+			this.angVelVec[i] = angVel;
+			const currentAngDamage = Math.round(Math.abs(angAcc)/2);
+			if (currentAngDamage > angDamage)
+				angDamage = currentAngDamage
+		}
+		if (angDamage >= Vehicle.DAMAGETHRESHOLD)
+			this.damage += angDamage;
+	}
 }
 
 export class Seat {
@@ -122,6 +157,7 @@ export class Seat {
 			seatButton.Remove();
 		}
 
+		Vehicle.occupiedVecs.length = 0;
 		Seat.occupiedSeats.clear();
 		Seat.playerSeats.clear();
 		Seat.counter = 0;
@@ -231,6 +267,15 @@ export class Seat {
 				this.occupant.SetParent(null);
 			}
 		}
+	}
+
+	damage(){
+		const health = this.occupant.GetHealth();
+		const newHealth = health - this.vehicle.damage;
+		if (newHealth > 0)
+			this.occupant.SetHealth(newHealth);
+		else
+			this.occupant.Kill();
 	}
 }
 

@@ -15,6 +15,10 @@ class Vehicle {
 	 */
 	static FULLTORQUEVELOCITY = 300;
 
+	static occupiedVecs = [];
+
+	static DAMAGETHRESHOLD = 5;
+
 	steeringInfo = []
 
 	lastSteer = null;
@@ -33,6 +37,12 @@ class Vehicle {
 
 			this.steeringInfo.push(info);
 		}
+
+		this.velVec = ZEROVECTOR;
+		this.ang = Object.values(this.body.GetAbsAngles());
+		this.angVelVec = [0, 0, 0];
+
+		Vehicle.occupiedVecs.push(this);
 	}
 
 	scaleThrusters(direction, scale){
@@ -43,16 +53,13 @@ class Vehicle {
 		return this.wheelsAnchor != undefined;
 	}
 
-	drive(forward=0, backward=0, right=0, left=0){
+	drive(forward=false, backward=false, right=false, left=false){
 		// find vehicle movement yaw relative to its yaw
-		const vecAngles = this.body.GetAbsAngles();
-		const vecYaw = vecAngles.yaw;
-		const vecVelVec = this.body.GetAbsVelocity();
-		const vecVelYaw = findYaw(vecVelVec);
-		const vecRelYaw = vecVelYaw - vecYaw;
+		const vecVelYaw = findYaw(this.velVec);
+		const vecRelYaw = vecVelYaw - this.ang[1];
 
 		// calculate torque scale
-		const vecVel = magnitude2d(vecVelVec);
+		const vecVel = magnitude2d(this.velVec);
 		const vecRelYawCos = Math.cos(vecRelYaw / 180 * Math.PI);
 		const scale = Math.min(vecVel/Vehicle.FULLTORQUEVELOCITY, 1) * Math.sign(vecRelYawCos);
 
@@ -94,6 +101,34 @@ class Vehicle {
 		else
 			this.scaleThrusters('right', 0);
 	}
+
+
+	updateDamage(){
+		this.damage = 0;
+
+		// linear damage
+		const velVec = this.body.GetAbsVelocity();
+		const acc = magnitude2d(velVec)-magnitude2d(this.velVec);
+		const linDamage = Math.round(acc**2/50000);
+		this.velVec = velVec;
+		if (linDamage >= Vehicle.DAMAGETHRESHOLD)
+			this.damage += linDamage;
+
+		// angular damage
+		const ang = Object.values(this.body.GetAbsAngles());
+		let angDamage = 0;
+		for (let i=0; i<3; i++){
+			const angVel = Math.sign(ang[i]) == Math.sign(this.ang[i]) ? ang[i]-this.ang[i] : ang[i]+this.ang[i];
+			this.ang[i] = ang[i];
+			const angAcc = angVel-this.angVelVec[i];
+			this.angVelVec[i] = angVel;
+			const currentAngDamage = Math.round(Math.abs(angAcc)/2);
+			if (currentAngDamage > angDamage)
+				angDamage = currentAngDamage;
+		}
+		if (angDamage >= Vehicle.DAMAGETHRESHOLD)
+			this.damage += angDamage;
+	}
 }
 
 class Seat {
@@ -122,6 +157,7 @@ class Seat {
 			seatButton.Remove();
 		}
 
+		Vehicle.occupiedVecs.length = 0;
 		Seat.occupiedSeats.clear();
 		Seat.playerSeats.clear();
 		Seat.counter = 0;
@@ -232,6 +268,15 @@ class Seat {
 			}
 		}
 	}
+
+	damage(){
+		const health = this.occupant.GetHealth();
+		const newHealth = health - this.vehicle.damage;
+		if (newHealth > 0)
+			this.occupant.SetHealth(newHealth);
+		else
+			this.occupant.Kill();
+	}
 }
 
 function magnitude2d(v){
@@ -301,6 +346,9 @@ Instance.SetThink(() => {
 		seat.teleportOccupant();
 	}
 
+	for (const vec of Vehicle.occupiedVecs)
+		vec.updateDamage();
+
 	for (const [_, seat] of Seat.occupiedSeats){
 		const seatInAngles = seat.seatIn.GetAbsAngles();
 		const undrivable = Math.abs(seatInAngles.pitch) > 45 || Math.abs(seatInAngles.roll) > 40;
@@ -308,7 +356,7 @@ Instance.SetThink(() => {
 		// if driver, detect his movement direction to move vehicle before teleporting him
 		if (seat.isDriver()){
 			// reset vehicle
-			seat.vehicle.drive(0,0,0,0);
+			seat.vehicle.drive(false,false,false,false);
 
 			// if vehicle is undrivable, use parenting to make dirver orientation follow vehicle angles
 			if (undrivable && seat.occupant.GetParent() == undefined){
@@ -333,28 +381,28 @@ Instance.SetThink(() => {
 					// determine movement direction relative to driver's direction to activate the right thruster(s) (https://developer.valvesoftware.com/wiki/QAngle)
 					// forward
 					if ((drvRelYaw > 0 && drvRelYaw < 0 + Vehicle.DEVIATION) || (drvRelYaw > 360 - Vehicle.DEVIATION && drvRelYaw < 360))
-						seat.vehicle.drive(1,0,0,0);
+						seat.vehicle.drive(true ,false,false,false);
 					// backward
 					else if (drvRelYaw > 180 - Vehicle.DEVIATION && drvRelYaw < 180 + Vehicle.DEVIATION)
-						seat.vehicle.drive(0,1,0,0);
+						seat.vehicle.drive(false,true ,false,false);
 					// left
 					else if (drvRelYaw > 90 - Vehicle.DEVIATION && drvRelYaw < 90 + Vehicle.DEVIATION)
-						seat.vehicle.drive(0,0,0,1);
+						seat.vehicle.drive(false,false,false,true );
 					// right
 					else if (drvRelYaw > 270 - Vehicle.DEVIATION && drvRelYaw < 270 + Vehicle.DEVIATION)
-						seat.vehicle.drive(0,0,1,0);
+						seat.vehicle.drive(false,false,true ,false);
 					// forward left
 					else if (drvRelYaw > 45 - Vehicle.DEVIATION && drvRelYaw < 45 + Vehicle.DEVIATION)
-						seat.vehicle.drive(1,0,0,1);
+						seat.vehicle.drive(true ,false,false,true );
 					// forward right
 					else if (drvRelYaw > 315 - Vehicle.DEVIATION && drvRelYaw < 315 + Vehicle.DEVIATION)
-						seat.vehicle.drive(1,0,1,0);
+						seat.vehicle.drive(true ,false,true ,false);
 					// backward left
 					else if (drvRelYaw > 135 - Vehicle.DEVIATION && drvRelYaw < 135 + Vehicle.DEVIATION)
-						seat.vehicle.drive(0,1,0,1);
+						seat.vehicle.drive(false,true ,false,true );
 					// backward right
 					else if	(drvRelYaw > 225 - Vehicle.DEVIATION && drvRelYaw < 225 + Vehicle.DEVIATION)
-						seat.vehicle.drive(0,1,1,0);
+						seat.vehicle.drive(false,true ,true ,false);
 				}
 			}
 		}
@@ -369,6 +417,8 @@ Instance.SetThink(() => {
 			seat.floor.Teleport(seat.seatIn.GetAbsOrigin(), seatInAngles, null);
 			seat.occupant.Teleport(newOrigin, null, null);
 		}
+
+		seat.damage();
 	}
 	Instance.SetNextThink(Instance.GetGameTime());
 });
