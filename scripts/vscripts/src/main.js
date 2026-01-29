@@ -16,7 +16,10 @@ i.SetThink(() => {
 	}
 
 	for (const vec of Vehicle.occupiedVecs)
-		vec.updateDamage();
+		if (vec.body.IsValid())
+			vec.updateDamage();
+		else
+			vec.deoccupy();
 
 	for (const [_, seat] of Seat.occupiedSeats){
 		const seatInAngles = seat.seatIn.GetAbsAngles();

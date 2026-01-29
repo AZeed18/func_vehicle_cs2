@@ -25,6 +25,8 @@ export class Vehicle {
 
 	lastSteer = null;
 
+	occupiedSeats = [];
+
 	constructor(vecName){
 		this.body = i.FindEntityByName(vecName + '_body');
 		this.forward = vecName + '_forward';
@@ -45,6 +47,27 @@ export class Vehicle {
 		this.angVelVec = [0, 0, 0];
 
 		Vehicle.occupiedVecs.push(this);
+	}
+
+	addSeat(seat){
+		this.occupiedSeats.push(seat);
+	}
+
+	removeSeat(seat){
+		// remove vehicle from occupied seats
+		let index = this.occupiedSeats.indexOf(seat);
+		this.occupiedSeats.splice(index);
+
+		// remove vehicle from occupied vehicles
+		if (!this.occupiedSeats.length){
+			index = Vehicle.occupiedVecs.indexOf(this);
+			Vehicle.occupiedVecs.splice(index);
+		}
+	}
+
+	deoccupy(){
+		for (const seat of this.occupiedSeats)
+			seat.deoccupy(false);
 	}
 
 	scaleThrusters(direction, scale){
@@ -103,7 +126,6 @@ export class Vehicle {
 		else
 			this.scaleThrusters('right', 0);
 	}
-
 
 	updateDamage(){
 		this.damage = 0;
@@ -198,9 +220,11 @@ export class Seat {
 		[this.floor, ...this.collisions] = i.FindEntityByName('func_vehicle_template').ForceSpawn();
 
 		// disable collisions
-		this.occupant.SetEntityName(this.name + '_func_vehicle_occupant' + ++this.counter);
+		this.occupant.SetEntityName(this.name + '_func_vehicle_occupant' + ++Seat.counter);
 		for (const collision of this.collisions)
 			i.EntFireAtTarget({target: collision, input: 'DisableCollisionsWith', value: this.occupant.GetEntityName()});
+
+		this.vehicle.addSeat(this);
 
 		Seat.newOccupantsQueue.push(this);
 
@@ -231,14 +255,17 @@ export class Seat {
 			}
 		}
 
+		this.vehicle.removeSeat(this);
+
 		// remove seat from occupied seats
 		Seat.occupiedSeats.delete(this.seatButton);
-		
+
 		// remove occupant from player seats map
 		Seat.playerSeats.delete(this.occupant);
 
 		// API
-		i.EntFireAtTarget({target: this.seatIn, input: 'FireUser2', value: this.name.replace(/.*(\d+)/, '$1'), activator: this.occupant})
+		if (this.seatIn.IsValid())
+			i.EntFireAtTarget({target: this.seatIn, input: 'FireUser2', value: this.name.replace(/.*(\d+)/, '$1'), activator: this.occupant})
 	}
 
 	isDriver(){
@@ -331,11 +358,11 @@ i.OnRoundStart(() => {
 
 i.OnPlayerKill(({player}) => {
 	const seat = Seat.playerSeats.get(player);
-	if (seat != undefined) seat.deoccupy();
+	if (seat != undefined) seat.deoccupy(false);
 });
 
 i.OnPlayerDisconnect((_) => {
 	for (const [_, seat] of Seat.occupiedSeats)
 		if (seat.occupant == undefined || seat.occupant.GetPlayerController() == undefined)
-			return seat.deoccupy();
+			return seat.deoccupy(false);
 });
