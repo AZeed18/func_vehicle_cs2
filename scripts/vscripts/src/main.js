@@ -31,10 +31,8 @@ i.SetThink(() => {
 			seat.vehicle.drive(false,false,false,false);
 
 			// if vehicle is undrivable, use parenting to make dirver orientation follow vehicle angles
-			if (undrivable && seat.occupant.GetParent() == undefined){
+			if (undrivable && seat.occupant.GetParent() == undefined)
 				seat.occupant.SetParent(seat.seatIn);
-				seat.occupant.Teleport(null, {yaw: seat.occupant.GetEyeAngles().yaw, pitch: seat.occupant.GetEyeAngles().pitch, roll: 0})
-			}
 
 			// if drivable, drive
 			if (!undrivable){
