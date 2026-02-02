@@ -237,11 +237,9 @@ export class Seat {
 	}
 
 	deoccupy(teleport=true){
-		// stop all thrusters
-		if (this.isDriver()){
-			this.vehicle.scaleThrusters('forward', 0);
-			this.vehicle.scaleThrusters('right', 0);
-		}
+		// reset thrusters and steering
+		if (this.isDriver())
+			this.vehicle.drive(false,false,false,false);
 
 		// remove seat floor
 		this.floor.Remove();

@@ -89,7 +89,8 @@ You can add any number of entities you want or none that rotate around their axe
 |---|---|
 |Name|`steer`|
 |Parent|steering entity|
-|Angles|same as steering entity + deviation on steering right|
+|Use Local Transform|✅|
+|Local Angles|Deviation on steering right|
 
 ### Wheels
 
