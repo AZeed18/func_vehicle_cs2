@@ -33,13 +33,11 @@ class Vehicle {
 		this.right = vecName + '_right';
 
 		// parse steering info
-		for (const infoEntity of Instance.FindEntitiesByName(vecName + '*[steer *]*')){
-			const info = {};
-			info.entity = infoEntity;
-			[info.rotation, info.angle] = infoEntity.GetEntityName().match(/.*\[steer (.*?)\].*/)[1].split(' ');
-			info.angle = Number(info.angle);
-
-			this.steeringInfo.push(info);
+		for (const steerEnt of Instance.FindEntitiesByName(vecName + '_steer')){
+			this.steeringInfo.push({
+				entity: steerEnt.GetParent(),
+				deviation: steerEnt.GetLocalAngles()
+			});
 		}
 
 		this.velVec = ZEROVECTOR;
@@ -92,13 +90,17 @@ class Vehicle {
 		for (const info of this.steeringInfo){
 			const steeredAngles = info.entity.GetAbsAngles();
 			if (right)
-				steeredAngles[info.rotation] += info.angle;
+				for (const ang of Object.keys(info.deviation))
+					steeredAngles[ang] += info.deviation[ang];
 			else if (left)
-				steeredAngles[info.rotation] -= info.angle;
+				for (const ang of Object.keys(info.deviation))
+					steeredAngles[ang] -= info.deviation[ang];
 			if (this.lastSteer === 'right')
-				steeredAngles[info.rotation] -= info.angle;
+				for (const ang of Object.keys(info.deviation))
+					steeredAngles[ang] -= info.deviation[ang];
 			else if (this.lastSteer === 'left')
-				steeredAngles[info.rotation] += info.angle;
+				for (const ang of Object.keys(info.deviation))
+					steeredAngles[ang] += info.deviation[ang];
 			info.entity.Teleport(null, steeredAngles, null);
 		}
 
