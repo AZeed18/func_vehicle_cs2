@@ -2,6 +2,15 @@
 *.bak
 *.old
 /models/
-/maps/demo2.vmap
+
+/maps/
+!/maps/demo.vmap
+!/maps/prefabs/vehicles/car.vmap
+!/maps/prefabs/vehicles/truck.vmap
+!/maps/prefabs/vehicles/wheeled_car.vmap
+
+/scripts/
+!/scripts/vscripts/func_vehicle.js
+!/scripts/vscripts/src/
 
 !/.gitignore
