@@ -36,7 +36,7 @@ class Vehicle {
 		for (const steerEnt of Instance.FindEntitiesByName(vecName + '_steer')){
 			this.steeringInfo.push({
 				entity: steerEnt.GetParent(),
-				deviation: steerEnt.GetLocalAngles()
+				deviation: Object.entries(steerEnt.GetLocalAngles()).filter(([_, ang]) => {return ang!=0})
 			});
 		}
 
@@ -90,17 +90,17 @@ class Vehicle {
 		for (const info of this.steeringInfo){
 			const steeredAngles = info.entity.GetAbsAngles();
 			if (right)
-				for (const ang of Object.keys(info.deviation))
-					steeredAngles[ang] += info.deviation[ang];
+				for (const [rot, ang] of info.deviation)
+					steeredAngles[rot] += ang;
 			else if (left)
-				for (const ang of Object.keys(info.deviation))
-					steeredAngles[ang] -= info.deviation[ang];
+				for (const [rot, ang] of info.deviation)
+					steeredAngles[rot] -= ang;
 			if (this.lastSteer === 'right')
-				for (const ang of Object.keys(info.deviation))
-					steeredAngles[ang] -= info.deviation[ang];
+				for (const [rot, ang] of info.deviation)
+					steeredAngles[rot] -= ang;
 			else if (this.lastSteer === 'left')
-				for (const ang of Object.keys(info.deviation))
-					steeredAngles[ang] += info.deviation[ang];
+				for (const [rot, ang] of info.deviation)
+					steeredAngles[rot] += ang;
 			info.entity.Teleport(null, steeredAngles, null);
 		}
 
