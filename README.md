@@ -1,3 +1,9 @@
+Check out my latest map:
+
+[![preview](https://steamcommunity.com/sharedfiles/filedetails/?id=3657680803)](https://steamcommunity.com/sharedfiles/filedetails/?id=3657680803)
+
+---
+
 https://github.com/user-attachments/assets/8119030e-958b-4ef8-9056-ed79003c067c
 
 This is a CS2 cs_script to help create vehicles with minimal map setup
