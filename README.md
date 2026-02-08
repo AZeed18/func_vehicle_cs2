@@ -1,6 +1,6 @@
 Check out my latest map:
 
-[![preview](https://steamcommunity.com/sharedfiles/filedetails/?id=3657680803)](https://steamcommunity.com/sharedfiles/filedetails/?id=3657680803)
+[![preview](https://images.steamusercontent.com/ugc/13174837681015117527/E6D2EA3F3CDE42B12246CC699AFBC1D175C93D74/)](https://steamcommunity.com/sharedfiles/filedetails/?id=3657680803)
 
 ---
 
