@@ -32,19 +32,6 @@ These entities must be placed in the map
     |Property|Value|
     |---|---|
     |cs_script|`scripts/vscripts/func_vehicle.vjs`|
-- `logic_collision_pair`: Used to disable collisions between vehicle and occupants, you may place one for each vehicle or use wildcards to match multiple/all vehicles
-    |Property|Value|
-    |---|---|
-    |Attachment 1|vehicle body name/pattern|
-    |Support multiple entities with same name|✅ (if using a pattern)|
-    |Include Hierarchy|✅|
-    |Start with collisions disabled|✅|
-- `logic_collision_pair`: Used to disable collisions between occupant and the world, needed to enable driving inside the ground... Not needed if driver seat can't get inside the ground in any vehicle
-    |Property|Value|
-    |---|---|
-    |Attachment 1|*empty*|
-    |Include Hierarchy|✅|
-    |Start with collisions disabled|✅|
 - `func_tracktrain`: Used as a floor for seats to prevent weapon spread
     |Property|Value|
     |---|---|
@@ -149,8 +136,8 @@ You can add any number of entities you want or none that rotate around their axe
 
 - Vehicle will immediately slow down on touching any non-occupant player
 - ~~Vehicle collision doesn't damage occupants~~
-- Driver orientation doesn't follow vehicle pitch and roll unless vehicle is considered undrivable due to its orientation being at specific roll and/or pitch, so driver can appear out of vehicle
-- Driver doesn't follow the vehicle smoothly unless vehicle is considered undrivable
+- ~~Driver orientation doesn't follow vehicle pitch and roll unless vehicle is considered undrivable due to its orientation being at specific roll and/or pitch, so driver can appear out of vehicle~~
+- ~~Driver doesn't follow the vehicle smoothly unless vehicle is considered undrivable~~
 - ~~Weapon spread~~
 - ~~All vehicles can rotate with same torque at any velocity~~
 - ~~Can't drive on a seat that goes through the ground~~

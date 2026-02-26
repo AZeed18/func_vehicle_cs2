@@ -2,7 +2,11 @@ import { Instance } from 'cs_script/point_script';
 
 const ZEROVECTOR = {x:0, y:0, z:0};
 
-const ZEROANGLES = {pitch:0, yaw:0, roll:0};
+const CSInputs = {
+	FORWARD: 1 << 0,
+	BACK: 1 << 1,
+	LEFT: 1 << 2,
+	RIGHT: 1 << 3};
 
 class Vehicle {
 	/**
@@ -105,28 +109,28 @@ class Vehicle {
 		}
 
 		// remember current steer direction
-		if (right)
+		if (right == left)
+			this.lastSteer = null;
+		else if (right)
 			this.lastSteer = 'right';
 		else if (left)
 			this.lastSteer = 'left';
-		else
-			this.lastSteer = null;
 
 		// forward thrusters/torques
-		if (forward)
-			this.scaleThrusters('forward', 1);
-		else if (backward)
-			this.scaleThrusters('forward', -1);
-		else
+		if (forward == backward)
 			this.scaleThrusters('forward', 0);
+		else if (forward)
+			this.scaleThrusters('forward', 1);
+		else
+			this.scaleThrusters('forward', -1);
 
 		// steering thrusters/torques
-		if (right)
-			this.scaleThrusters('right', scale);
-		else if (left)
-			this.scaleThrusters('right', -scale);
-		else
+		if (right == left)
 			this.scaleThrusters('right', 0);
+		else if (right)
+			this.scaleThrusters('right', scale);
+		else
+			this.scaleThrusters('right', -scale);
 	}
 
 	updateDamage(){
@@ -273,8 +277,11 @@ class Seat {
 	}
 
 	teleportOccupant(inside=true){
-		if (inside)
-			this.occupant.Teleport(this.seatIn.GetAbsOrigin(), this.seatIn.GetAbsAngles(), ZEROVECTOR);
+		if (inside){
+			const occupantAngles = this.occupant.GetAbsAngles();
+			occupantAngles.yaw += this.seatIn.GetAbsOrigin().yaw;
+			this.occupant.Teleport(this.seatIn.GetAbsOrigin(), occupantAngles, ZEROVECTOR);
+		}
 		else {
 			// if no out of seat entity, estimate out of seat position and orientation
 			if (this.seatOut == undefined){
@@ -370,8 +377,7 @@ Instance.OnPlayerDisconnect((_) => {
 Instance.SetThink(() => {
 	while (Seat.newOccupantsQueue.length){
 		const seat = Seat.newOccupantsQueue.pop();
-		if (!seat.isDriver())
-			seat.occupant.SetParent(seat.seatIn);
+		seat.occupant.SetParent(seat.seatIn);
 		seat.teleportOccupant();
 	}
 
@@ -381,72 +387,20 @@ Instance.SetThink(() => {
 		else
 			vec.deoccupy();
 
+	// driving
 	for (const [_, seat] of Seat.occupiedSeats){
-		const seatInAngles = seat.seatIn.GetAbsAngles();
-		const undrivable = Math.abs(seatInAngles.pitch) > 45 || Math.abs(seatInAngles.roll) > 40;
 
-		// if driver, detect his movement direction to move vehicle before teleporting him
 		if (seat.isDriver()){
-			// reset vehicle
-			seat.vehicle.drive(false,false,false,false);
-
-			// if vehicle is undrivable, use parenting to make dirver orientation follow vehicle angles
-			if (undrivable && seat.occupant.GetParent() == undefined)
-				seat.occupant.SetParent(seat.seatIn);
-
-			// if drivable, drive
-			if (!undrivable){
-				seat.occupant.SetParent(null);
-
-				// get driver velocity
-				const drvVelVec = seat.occupant.GetAbsVelocity();
-
-				// if driver moved
-				if ((drvVelVec.x != 0 || drvVelVec.y != 0)){
-					// find driver movement yaw relative to his eyes yaw
-					const drvYaw = seat.occupant.GetEyeAngles().yaw;
-					const drvVelYaw = findYaw(drvVelVec);
-					const drvRelYaw = (drvVelYaw - drvYaw + 360) % 360;
-
-					// determine movement direction relative to driver's direction to activate the right thruster(s) (https://developer.valvesoftware.com/wiki/QAngle)
-					// forward
-					if ((drvRelYaw > 0 && drvRelYaw < 0 + Vehicle.DEVIATION) || (drvRelYaw > 360 - Vehicle.DEVIATION && drvRelYaw < 360))
-						seat.vehicle.drive(true ,false,false,false);
-					// backward
-					else if (drvRelYaw > 180 - Vehicle.DEVIATION && drvRelYaw < 180 + Vehicle.DEVIATION)
-						seat.vehicle.drive(false,true ,false,false);
-					// left
-					else if (drvRelYaw > 90 - Vehicle.DEVIATION && drvRelYaw < 90 + Vehicle.DEVIATION)
-						seat.vehicle.drive(false,false,false,true );
-					// right
-					else if (drvRelYaw > 270 - Vehicle.DEVIATION && drvRelYaw < 270 + Vehicle.DEVIATION)
-						seat.vehicle.drive(false,false,true ,false);
-					// forward left
-					else if (drvRelYaw > 45 - Vehicle.DEVIATION && drvRelYaw < 45 + Vehicle.DEVIATION)
-						seat.vehicle.drive(true ,false,false,true );
-					// forward right
-					else if (drvRelYaw > 315 - Vehicle.DEVIATION && drvRelYaw < 315 + Vehicle.DEVIATION)
-						seat.vehicle.drive(true ,false,true ,false);
-					// backward left
-					else if (drvRelYaw > 135 - Vehicle.DEVIATION && drvRelYaw < 135 + Vehicle.DEVIATION)
-						seat.vehicle.drive(false,true ,false,true );
-					// backward right
-					else if	(drvRelYaw > 225 - Vehicle.DEVIATION && drvRelYaw < 225 + Vehicle.DEVIATION)
-						seat.vehicle.drive(false,true ,true ,false);
-				}
-			}
+			seat.vehicle.drive(
+				seat.occupant.IsInputPressed(CSInputs.FORWARD) && !seat.occupant.IsInputPressed(CSInputs.BACK),
+				seat.occupant.IsInputPressed(CSInputs.BACK) && !seat.occupant.IsInputPressed(CSInputs.FORWARD),
+				seat.occupant.IsInputPressed(CSInputs.RIGHT) && !seat.occupant.IsInputPressed(CSInputs.LEFT),
+				seat.occupant.IsInputPressed(CSInputs.LEFT) && !seat.occupant.IsInputPressed(CSInputs.RIGHT)
+			);
 		}
 
-		const newOrigin = seat.seatIn.GetAbsOrigin();
-		newOrigin.z += 2;
-		if (seat.isDriver() && !undrivable){
-			seat.floor.Teleport(seat.seatIn.GetAbsOrigin(), ZEROANGLES, null);
-			seat.occupant.Teleport(newOrigin, null, ZEROVECTOR);
-		}
-		else {
-			seat.floor.Teleport(seat.seatIn.GetAbsOrigin(), seatInAngles, null);
-			seat.occupant.Teleport(newOrigin, null, null);
-		}
+		seat.floor.Teleport(seat.seatIn.GetAbsOrigin(), seat.seatIn.GetAbsAngles(), null);
+		seat.occupant.Teleport(seat.seatIn.GetAbsOrigin(), null, null);
 
 		seat.damage();
 	}

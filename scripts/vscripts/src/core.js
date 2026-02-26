@@ -2,7 +2,22 @@ import { Instance as i } from "cs_script/point_script";
 
 export const ZEROVECTOR = {x:0, y:0, z:0};
 
-export const ZEROANGLES = {pitch:0, yaw:0, roll:0};
+export const CSInputs = {
+	NONE: 0,
+	FORWARD: 1 << 0,
+	BACK: 1 << 1,
+	LEFT: 1 << 2,
+	RIGHT: 1 << 3,
+	WALK: 1 << 4,
+	DUCK: 1 << 5,
+	JUMP: 1 << 6,
+	USE: 1 << 7,
+	ATTACK: 1 << 8,
+	ATTACK2: 1 << 9,
+	RELOAD: 1 << 10,
+	SHOW_SCORES: 1 << 11,
+	LOOK_AT_WEAPON: 1 << 12
+}
 
 export class Vehicle {
 	/**
@@ -105,28 +120,28 @@ export class Vehicle {
 		}
 
 		// remember current steer direction
-		if (right)
+		if (right == left)
+			this.lastSteer = null;
+		else if (right)
 			this.lastSteer = 'right';
 		else if (left)
 			this.lastSteer = 'left';
-		else
-			this.lastSteer = null;
 
 		// forward thrusters/torques
-		if (forward)
-			this.scaleThrusters('forward', 1);
-		else if (backward)
-			this.scaleThrusters('forward', -1);
-		else
+		if (forward == backward)
 			this.scaleThrusters('forward', 0);
+		else if (forward)
+			this.scaleThrusters('forward', 1);
+		else
+			this.scaleThrusters('forward', -1);
 
 		// steering thrusters/torques
-		if (right)
-			this.scaleThrusters('right', scale);
-		else if (left)
-			this.scaleThrusters('right', -scale);
-		else
+		if (right == left)
 			this.scaleThrusters('right', 0);
+		else if (right)
+			this.scaleThrusters('right', scale);
+		else
+			this.scaleThrusters('right', -scale);
 	}
 
 	updateDamage(){
@@ -273,8 +288,11 @@ export class Seat {
 	}
 
 	teleportOccupant(inside=true){
-		if (inside)
-			this.occupant.Teleport(this.seatIn.GetAbsOrigin(), this.seatIn.GetAbsAngles(), ZEROVECTOR);
+		if (inside){
+			const occupantAngles = this.occupant.GetAbsAngles();
+			occupantAngles.yaw += this.seatIn.GetAbsOrigin().yaw;
+			this.occupant.Teleport(this.seatIn.GetAbsOrigin(), occupantAngles, ZEROVECTOR);
+		}
 		else {
 			// if no out of seat entity, estimate out of seat position and orientation
 			if (this.seatOut == undefined){
