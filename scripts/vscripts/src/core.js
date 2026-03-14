@@ -34,8 +34,6 @@ export class Vehicle {
 
 	static occupiedVecs = [];
 
-	static DAMAGETHRESHOLD = 5;
-
 	steeringInfo = []
 
 	lastSteer = null;
@@ -54,10 +52,6 @@ export class Vehicle {
 				deviation: Object.entries(steerEnt.GetLocalAngles()).filter(([_, ang]) => {return ang!=0})
 			});
 		}
-
-		this.velVec = ZEROVECTOR;
-		this.ang = Object.values(this.body.GetAbsAngles());
-		this.angVelVec = [0, 0, 0];
 
 		Vehicle.occupiedVecs.push(this);
 	}
@@ -93,11 +87,12 @@ export class Vehicle {
 
 	drive(forward=false, backward=false, right=false, left=false){
 		// find vehicle movement yaw relative to its yaw
-		const vecVelYaw = findYaw(this.velVec);
-		const vecRelYaw = vecVelYaw - this.ang[1];
+		const vecVelVec = this.body.GetAbsVelocity();
+		const vecVelYaw = findYaw(vecVelVec);
+		const vecRelYaw = vecVelYaw - this.body.GetAbsAngles()["yaw"];
 
 		// calculate torque scale
-		const vecVel = magnitude2d(this.velVec);
+		const vecVel = magnitude2d(vecVelVec);
 		const vecRelYawCos = Math.cos(vecRelYaw / 180 * Math.PI);
 		const scale = Math.min(vecVel/Vehicle.FULLTORQUEVELOCITY, 1) * Math.sign(vecRelYawCos);
 
@@ -116,7 +111,7 @@ export class Vehicle {
 			else if (this.lastSteer === 'left')
 				for (const [rot, ang] of info.deviation)
 					steeredAngles[rot] += ang;
-			info.entity.Teleport(null, steeredAngles, null);
+			info.entity.Teleport({angles: steeredAngles});
 		}
 
 		// remember current steer direction
@@ -143,36 +138,19 @@ export class Vehicle {
 		else
 			this.scaleThrusters('right', -scale);
 	}
-
-	updateDamage(){
-		this.damage = 0;
-
-		// linear damage
-		const velVec = this.body.GetAbsVelocity();
-		const acc = magnitude2d(velVec)-magnitude2d(this.velVec);
-		const linDamage = Math.round(acc**2/50000);
-		this.velVec = velVec;
-		if (linDamage >= Vehicle.DAMAGETHRESHOLD)
-			this.damage += linDamage;
-
-		// angular damage
-		const ang = Object.values(this.body.GetAbsAngles());
-		let angDamage = 0;
-		for (let i=0; i<3; i++){
-			const angVel = Math.sign(ang[i]) == Math.sign(this.ang[i]) ? ang[i]-this.ang[i] : ang[i]+this.ang[i];
-			this.ang[i] = ang[i];
-			const angAcc = angVel-this.angVelVec[i];
-			this.angVelVec[i] = angVel;
-			const currentAngDamage = Math.round(Math.abs(angAcc)/2);
-			if (currentAngDamage > angDamage)
-				angDamage = currentAngDamage
-		}
-		if (angDamage >= Vehicle.DAMAGETHRESHOLD)
-			this.damage += angDamage;
-	}
 }
 
 export class Seat {
+	static DAMAGETHRESHOLD = 5;
+
+	static occupiedSeats = new Map(); // seat button entity => occupied Seat
+	static playerSeats = new Map(); // player entity => occupied Seat
+
+	/** 
+	 * A counter of occupation during the whole round, used to give players unique names instead of seat names that can be repeated for a player not occupying any vehicle
+	 */
+	static counter = 0;
+
 	/**
 	 * Queue of every new occupied seat
 	 * 
@@ -180,34 +158,24 @@ export class Seat {
 	 */
 	static newOccupantsQueue = [];
 
-	/** 
-	 * A count of all occupations since round start, used to give players unique names instead of seat names that can be repeated for a player not occupying any vehicle
-	 */
-	static counter = 0;
-	static occupiedSeats = new Map(); // seat button entity => occupied Seat
-	static playerSeats = new Map(); // player entity => occupied Seat
-
-	static init(){
-		for (const seatButton of i.FindEntitiesByName("*_seat*_button"))
-			i.ConnectOutput(seatButton, "OnPressed", useVehicle);
-	}
-
 	static reset(){
-		for (const [seatButton, seat] of Seat.occupiedSeats){
-			seat.deoccupy();
-			seatButton.Remove();
-		}
-
 		Vehicle.occupiedVecs.length = 0;
 		Seat.occupiedSeats.clear();
 		Seat.playerSeats.clear();
 		Seat.counter = 0;
 		Seat.newOccupantsQueue.length = 0;
+		Seat.connectDoors();
+		Seat.resetNames();
+	}
+
+	static connectDoors(){
+		for (const seatButton of i.FindEntitiesByName("*_seat*_button"))
+			i.ConnectOutput(seatButton, "OnPressed", useVehicle);
 	}
 
 	static resetNames(){
 		for (const occupant of i.FindEntitiesByName('*_func_vehicle_occupant*'))
-			occupant.SetEntityName('')
+			occupant.SetEntityName('');
 	}
 
 	static inVehicle(ply){
@@ -229,12 +197,19 @@ export class Seat {
 
 		this.occupy(occupant);
 
+		this.occuapantVel = this.occupant.GetAbsVelocity();
+
 		Seat.occupiedSeats.set(seatButton, this);
 	}
 
 	occupy(occupant){
 		this.occupant = occupant;
-		[this.floor, ...this.collisions] = i.FindEntityByName('func_vehicle_template').ForceSpawn();
+
+		const template = i.FindEntityByName('func_vehicle_template');
+		if (template != undefined)
+			[this.floor, ...this.collisions] = template.ForceSpawn();
+		else
+			[this.floor, ...this.collisions] = [undefined];
 
 		// disable collisions
 		this.occupant.SetEntityName(this.name + '_func_vehicle_occupant' + ++Seat.counter);
@@ -257,7 +232,7 @@ export class Seat {
 			this.vehicle.drive(false,false,false,false);
 
 		// remove seat floor
-		this.floor.Remove();
+		this.floor?.Remove();
 
 		// if player is not exiting because of disconnection
 		if (this.occupant != undefined && this.occupant.GetPlayerController() != undefined){
@@ -291,7 +266,7 @@ export class Seat {
 		if (inside){
 			const occupantAngles = this.occupant.GetAbsAngles();
 			occupantAngles.yaw += this.seatIn.GetAbsOrigin().yaw;
-			this.occupant.Teleport(this.seatIn.GetAbsOrigin(), occupantAngles, ZEROVECTOR);
+			this.occupant.Teleport({position: this.seatIn.GetAbsOrigin(), angles: occupantAngles});
 		}
 		else {
 			// if no out of seat entity, estimate out of seat position and orientation
@@ -305,24 +280,32 @@ export class Seat {
 				const occupantAngles = this.vehicle.body.GetAbsAngles();
 				occupantAngles.roll = 0;
 				occupantAngles.yaw += seatInLocalY > 0 ? -90 : 90;
-				this.occupant.Teleport(null, occupantAngles, null);
+				this.occupant.Teleport({angles: occupantAngles});
 			}
 			else {
 				const seatOutAngles = this.seatOut.GetAbsAngles();
 				seatOutAngles.roll = 0;
-				this.occupant.Teleport(this.seatOut.GetAbsOrigin(), seatOutAngles, ZEROVECTOR);
+				this.occupant.Teleport({position: this.seatOut.GetAbsOrigin(), angles: seatOutAngles});
 				this.occupant.SetParent(null);
 			}
 		}
 	}
 
 	damage(){
-		const health = this.occupant.GetHealth();
-		const newHealth = health - this.vehicle.damage;
-		if (newHealth > 0)
-			this.occupant.SetHealth(newHealth);
-		else
-			this.occupant.Kill();
+		const occuapantVel = this.occupant.GetLocalVelocity();
+		const acc = magnitude2d(occuapantVel)-magnitude2d(this.occuapantVel);
+		const damage = Math.round(acc**2/30000);
+
+		if (damage >= Seat.DAMAGETHRESHOLD){
+			const health = this.occupant.GetHealth();
+			const newHealth = health - damage;
+			if (newHealth > 0)
+				this.occupant.SetHealth(newHealth);
+			else
+				this.occupant.Kill();
+		}
+
+		this.occuapantVel = occuapantVel;
 	}
 }
 
@@ -364,15 +347,13 @@ function useVehicle({caller, activator}){
 		seat.deoccupy();
 }
 
-Seat.resetNames();
-Seat.init();
+i.OnRoundStart(Seat.reset);
+i.OnScriptInput("reload", Seat.connectDoors);
 
-i.OnRoundEnd(Seat.reset);
-
-i.OnRoundStart(() => {
+i.OnScriptReload({after: () => {
+	Seat.connectDoors();
 	Seat.resetNames();
-	Seat.init();
-});
+}});
 
 i.OnPlayerKill(({player}) => {
 	const seat = Seat.playerSeats.get(player);

@@ -13,14 +13,13 @@ i.SetThink(() => {
 	}
 
 	for (const vec of Vehicle.occupiedVecs)
-		if (vec.body.IsValid())
-			vec.updateDamage();
-		else
+		if (!vec.body.IsValid())
 			vec.deoccupy();
 
-	// driving
 	for (const [_, seat] of Seat.occupiedSeats){
+		seat.damage();
 
+		// driving
 		if (seat.isDriver()){
 			seat.vehicle.drive(
 				seat.occupant.IsInputPressed(CSInputs.FORWARD) && !seat.occupant.IsInputPressed(CSInputs.BACK),
@@ -30,8 +29,8 @@ i.SetThink(() => {
 			);
 		}
 
-		seat.floor.Teleport(seat.seatIn.GetAbsOrigin(), seat.seatIn.GetAbsAngles(), null);
-		seat.occupant.Teleport(seat.seatIn.GetAbsOrigin(), null, null);
+		seat.floor?.Teleport({position: seat.seatIn.GetAbsOrigin(), angles: seat.seatIn.GetAbsAngles()});
+		seat.occupant.Teleport({position: seat.seatIn.GetAbsOrigin()});
 
 		seat.damage();
 	}
