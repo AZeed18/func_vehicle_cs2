@@ -8,7 +8,7 @@ https://github.com/user-attachments/assets/8119030e-958b-4ef8-9056-ed79003c067c
 
 This is a CS2 cs_script to help create vehicles with minimal map setup
 
-A demo map with a vehicle is in maps folder
+A demo map with vehicles is in maps folder
 
 # Features
 
@@ -18,7 +18,9 @@ A demo map with a vehicle is in maps folder
 - Support for wheeled vehicles
 - Support for steering wheels and similar
 - Player is forced out of vehicle if another player tries to enter
-- API
+- Input/Output interface
+
+For updated script and more features, feel free to contact me
 
 # Map Setup
 
@@ -127,7 +129,7 @@ You can add any number of entities you want or none that rotate around their axe
     |---|---|
     |Name|`seat{seat number}_out`|
 
-# API
+# Input/Output Interface
 
 - `OnUser1` is fired at `seat*_in` on entering, activator is the player
 - `OnUser2` is fired at `seat*_in` on exiting, activator is the player
