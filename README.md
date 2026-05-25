@@ -1,4 +1,10 @@
-Check out my latest map:
+> [!INFO]
+> For updated script with more features, feel free to contact me
+
+**Bumper Cars**
+
+> [!WARNING]
+> This map currently uses the open source version available here not the latest version
 
 [![preview](https://images.steamusercontent.com/ugc/13174837681015117527/E6D2EA3F3CDE42B12246CC699AFBC1D175C93D74/)](https://steamcommunity.com/sharedfiles/filedetails/?id=3657680803)
 
@@ -19,8 +25,6 @@ A demo map with vehicles is in maps folder
 - Support for steering wheels and similar
 - Player is forced out of vehicle if another player tries to enter
 - Input/Output interface
-
-For updated script and more features, feel free to contact me
 
 # Map Setup
 
