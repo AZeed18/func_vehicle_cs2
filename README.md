@@ -1,7 +1,7 @@
 > [!NOTE]
 > For updated script with more features, feel free to contact me
 
-**Bumper Cars**
+## Bumper Cars
 
 > [!WARNING]
 > This map currently uses the open source version available here not the latest version
