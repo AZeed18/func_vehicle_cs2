@@ -1,4 +1,4 @@
-> [!INFO]
+> [!NOTE]
 > For updated script with more features, feel free to contact me
 
 **Bumper Cars**
